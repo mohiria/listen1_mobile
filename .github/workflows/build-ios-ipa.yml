@@ -1,0 +1,72 @@
+name: Build unsigned iOS IPA
+
+on:
+  push:
+    branches:
+      - ios-ipa-build
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.20.2
+
+      - name: Enable Yarn Classic
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn --version
+
+      - name: Install JavaScript dependencies
+        run: |
+          yarn install --frozen-lockfile --network-timeout 300000
+
+      - name: Build iOS app
+        env:
+          NODE_BINARY: node
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/Listen1.xcodeproj \
+            -scheme Listen1 \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            PRODUCT_BUNDLE_IDENTIFIER=com.mohiria.listen1 \
+            IPHONEOS_DEPLOYMENT_TARGET=12.0 \
+            build | tee build/xcodebuild.log
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Listen1.app"
+          test -d "$APP_PATH"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/Listen1.app
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent build/ipa/Payload build/Listen1.ipa
+          test -s build/Listen1.ipa
+          unzip -l build/Listen1.ipa | head -40
+
+      - name: Publish IPA to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-ipa-latest
+          target_commitish: ios-ipa-build
+          name: Listen1 iOS IPA (latest)
+          prerelease: true
+          make_latest: false
+          files: build/Listen1.ipa
