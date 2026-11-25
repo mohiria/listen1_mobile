@@ -33,15 +33,43 @@ jobs:
           node -e 'const fs=require("fs"); const p="yarn.lock"; fs.writeFileSync(p, fs.readFileSync(p,"utf8").replace(/^  "resolved" "[^"]+"\n/gm, ""))'
           yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
 
-      - name: Patch legacy React Native glog architecture
+      - name: Patch legacy React Native iOS compatibility
         run: |
           set -euo pipefail
-          SCRIPT="node_modules/react-native/scripts/ios-configure-glog.sh"
-          test -f "$SCRIPT"
-          if grep -q 'CURRENT_ARCH="armv7"' "$SCRIPT"; then
-            sed -i '' 's/CURRENT_ARCH="armv7"/CURRENT_ARCH="arm64"/' "$SCRIPT"
+
+          # RN 0.59.9 defaults the legacy glog configure script to armv7.
+          GLOG_SCRIPT="node_modules/react-native/scripts/ios-configure-glog.sh"
+          test -f "$GLOG_SCRIPT"
+          if grep -q 'CURRENT_ARCH="armv7"' "$GLOG_SCRIPT"; then
+            sed -i '' 's/CURRENT_ARCH="armv7"/CURRENT_ARCH="arm64"/' "$GLOG_SCRIPT"
           fi
-          grep -n 'CURRENT_ARCH=' "$SCRIPT"
+          grep -n 'CURRENT_ARCH=' "$GLOG_SCRIPT"
+
+          # Xcode's Objective-C generics require the module-class array type here.
+          BRIDGE_FILE="node_modules/react-native/React/CxxBridge/RCTCxxBridge.mm"
+          test -f "$BRIDGE_FILE"
+          node <<'NODE'
+          const fs = require("fs");
+          const file = "node_modules/react-native/React/CxxBridge/RCTCxxBridge.mm";
+          let source = fs.readFileSync(file, "utf8");
+          const oldText = "_initializeModules:(NSArray<id<RCTBridgeModule>> *)modules";
+          const newText = "_initializeModules:(NSArray<Class> *)modules";
+          const count = source.split(oldText).length - 1;
+          if (count === 0) {
+            if (source.includes(newText)) {
+              console.log("RCTCxxBridge module-array compatibility patch already present");
+            } else {
+              throw new Error("Expected RCTCxxBridge _initializeModules signature was not found; refusing an unsafe patch");
+            }
+          } else if (count !== 1) {
+            throw new Error(`Expected exactly one RCTCxxBridge signature, found ${count}; refusing an ambiguous patch`);
+          } else {
+            source = source.replace(oldText, newText);
+            fs.writeFileSync(file, source);
+            console.log("Patched RCTCxxBridge _initializeModules to NSArray<Class>");
+          }
+          NODE
+          grep -n '_initializeModules:(NSArray<Class> \*)modules' "$BRIDGE_FILE"
 
       - name: Build iOS app
         env:
