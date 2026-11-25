@@ -71,6 +71,32 @@ jobs:
           NODE
           grep -n '_initializeModules:(NSArray<Class> \*)modules' "$BRIDGE_FILE"
 
+          # Clang 17 treats the old no-prototype C function definition as an error.
+          ANIMATION_FILE="node_modules/react-native/Libraries/NativeAnimation/RCTAnimationUtils.m"
+          test -f "$ANIMATION_FILE"
+          node <<'NODE'
+          const fs = require("fs");
+          const file = "node_modules/react-native/Libraries/NativeAnimation/RCTAnimationUtils.m";
+          let source = fs.readFileSync(file, "utf8");
+          const oldText = "CGFloat RCTAnimationDragCoefficient()";
+          const newText = "CGFloat RCTAnimationDragCoefficient(void)";
+          const count = source.split(oldText).length - 1;
+          if (count === 0) {
+            if (source.includes(newText)) {
+              console.log("RCTAnimationDragCoefficient prototype patch already present");
+            } else {
+              throw new Error("Expected RCTAnimationDragCoefficient definition was not found; refusing an unsafe patch");
+            }
+          } else if (count !== 1) {
+            throw new Error(`Expected exactly one RCTAnimationDragCoefficient definition, found ${count}; refusing an ambiguous patch`);
+          } else {
+            source = source.replace(oldText, newText);
+            fs.writeFileSync(file, source);
+            console.log("Patched RCTAnimationDragCoefficient(void)");
+          }
+          NODE
+          grep -n 'RCTAnimationDragCoefficient(void)' "$ANIMATION_FILE"
+
       - name: Build iOS app
         env:
           NODE_BINARY: node
