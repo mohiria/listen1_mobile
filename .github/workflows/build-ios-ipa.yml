@@ -43,7 +43,10 @@ jobs:
           set -euo pipefail
           # Preserve locked versions and integrity hashes, but discard obsolete Taobao tarball URLs.
           node -e 'const fs=require("fs"); const p="yarn.lock"; fs.writeFileSync(p, fs.readFileSync(p,"utf8").replace(/^  "resolved" "[^"]+"\n/gm, ""))'
-          yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
+          # Metro preset 0.59.0 is needed to parse syntax used by RN 0.59.9's URL.js.
+          # Allow Yarn Classic to refresh yarn.lock for this explicitly pinned preset.
+          yarn install --no-frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
+          node -e "const p=require('metro-react-native-babel-preset/package.json'); if(p.version !== '0.59.0') throw new Error('Unexpected Metro preset: '+p.version); console.log('Metro Babel preset: '+p.version)"
           node --version
           node -p "'OpenSSL: ' + process.versions.openssl"
           node -e "require('crypto').createHash('md4'); console.log('Metro MD4 compatibility: OK')"
