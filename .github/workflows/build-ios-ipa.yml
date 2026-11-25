@@ -93,6 +93,7 @@ jobs:
             ARCHS=arm64 \
             CURRENT_ARCH=arm64 \
             CLANG_WARN_STRICT_PROTOTYPES=NO \
+            OTHER_CFLAGS=-Wno-error=enum-compare \
             build | tee build/xcodebuild.log
 
       - name: Package unsigned IPA
