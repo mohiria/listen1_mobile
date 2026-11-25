@@ -16,10 +16,19 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      # React Native 0.59.9 / Metro 0.51.1 predates OpenSSL 3.
+      # Node 16 uses OpenSSL 1.1.1, where Metro's MD4 cache hash works.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 16.20.2
+
+      - name: Select and verify Xcode
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
 
       - name: Enable Yarn Classic
         run: |
@@ -29,9 +38,13 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: |
+          set -euo pipefail
           # Preserve locked versions and integrity hashes, but discard obsolete Taobao tarball URLs.
           node -e 'const fs=require("fs"); const p="yarn.lock"; fs.writeFileSync(p, fs.readFileSync(p,"utf8").replace(/^  "resolved" "[^"]+"\n/gm, ""))'
           yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
+          node --version
+          node -p "'OpenSSL: ' + process.versions.openssl"
+          node -e "require('crypto').createHash('md4'); console.log('Metro MD4 compatibility: OK')"
 
       - name: Patch legacy React Native iOS compatibility
         run: |
@@ -71,32 +84,24 @@ jobs:
           NODE
           grep -n '_initializeModules:(NSArray<Class> \*)modules' "$BRIDGE_FILE"
 
-          # Metro 0.51.1 uses the MD4 hash algorithm, which OpenSSL 3 in modern
-          # Node.js disables. Metro then hides the crypto error and later crashes
-          # with "Cannot read properties of undefined (reading 'transformFile')".
-          # Upstream Metro PR #752 switches this cache-key hash to MD5.
-          METRO_HASH="node_modules/metro-cache/src/stableHash.js"
-          test -f "$METRO_HASH"
-          node <<'NODE'
-          const fs = require("fs");
-          const file = "node_modules/metro-cache/src/stableHash.js";
-          let source = fs.readFileSync(file, "utf8");
-          const oldText = ".createHash('md4')";
-          const newText = ".createHash('md5')";
-          const count = source.split(oldText).length - 1;
-          if (count === 1) {
-            source = source.replace(oldText, newText);
-            fs.writeFileSync(file, source);
-            console.log("Patched Metro cache hash from MD4 to MD5 for OpenSSL 3 compatibility");
-          } else if (count === 0 && source.includes(newText)) {
-            console.log("Metro cache MD5 compatibility patch already present");
-          } else {
-            throw new Error(`Expected exactly one Metro MD4 hash call, found ${count}; refusing an unsafe patch`);
-          }
-          NODE
-          grep -n "createHash" "$METRO_HASH"
-          node --version
-          node -e "console.log('MD4 available:', (() => { try { require('crypto').createHash('md4'); return true; } catch (_) { return false; } })())"
+      # Run Metro before the expensive native build. This is the exact bundle
+      # operation the Xcode build phase performs, but with verbose diagnostics.
+      - name: Preflight React Native JavaScript bundle
+        env:
+          NODE_BINARY: node
+        run: |
+          set -euo pipefail
+          mkdir -p build/preflight/assets
+          node node_modules/react-native/cli.js bundle \
+            --entry-file index.js \
+            --platform ios \
+            --dev false \
+            --reset-cache \
+            --verbose \
+            --bundle-output build/preflight/main.jsbundle \
+            --assets-dest build/preflight/assets
+          test -s build/preflight/main.jsbundle
+          ls -lh build/preflight/main.jsbundle
 
       - name: Build iOS app
         env:
@@ -128,6 +133,7 @@ jobs:
           set -euo pipefail
           APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Listen1.app"
           test -d "$APP_PATH"
+          test -s "$APP_PATH/main.jsbundle"
           mkdir -p build/ipa/Payload
           cp -R "$APP_PATH" build/ipa/Payload/Listen1.app
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent build/ipa/Payload build/Listen1.ipa
