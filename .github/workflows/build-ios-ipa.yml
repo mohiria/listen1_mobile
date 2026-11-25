@@ -12,16 +12,18 @@ permissions:
 jobs:
   build-ios:
     runs-on: macos-15-intel
+    env:
+      # Metro 0.51.1 uses MD4; Node 20 needs OpenSSL's legacy provider for it.
+      NODE_OPTIONS: --openssl-legacy-provider
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      # React Native 0.59.9 / Metro 0.51.1 predates OpenSSL 3.
-      # Node 16 uses OpenSSL 1.1.1, where Metro's MD4 cache hash works.
+      # Keep Node 20 for dependencies; enable OpenSSL legacy algorithms for old Metro's MD4 cache hash.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 16.20.2
+          node-version: 20
 
       - name: Select and verify Xcode
         run: |
