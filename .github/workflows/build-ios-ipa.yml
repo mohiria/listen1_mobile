@@ -29,16 +29,16 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: |
-          # The v1 lockfile contains obsolete Taobao tarball URLs. Keep its exact
-          # versions and integrity hashes, but let Yarn resolve them via npmjs.
-          node -e "const fs=require('fs'); const p='yarn.lock'; fs.writeFileSync(p, fs.readFileSync(p,'utf8').replace(/^  \\\"resolved\\\" \\\"[^\\\"]+\\\"\\n/gm, ''))"
+          # Preserve locked versions and integrity hashes, but discard obsolete Taobao tarball URLs.
+          node -e 'const fs=require("fs"); const p="yarn.lock"; fs.writeFileSync(p, fs.readFileSync(p,"utf8").replace(/^  "resolved" "[^"]+"\n/gm, ""))'
           yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
 
       - name: Build iOS app
         env:
           NODE_BINARY: node
         run: |
-          set -o pipefail
+          set -euo pipefail
+          mkdir -p build
           xcodebuild \
             -project ios/Listen1.xcodeproj \
             -scheme Listen1 \
@@ -55,7 +55,7 @@ jobs:
 
       - name: Package unsigned IPA
         run: |
-          set -e
+          set -euo pipefail
           APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Listen1.app"
           test -d "$APP_PATH"
           mkdir -p build/ipa/Payload
