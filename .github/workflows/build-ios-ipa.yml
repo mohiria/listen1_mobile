@@ -71,6 +71,32 @@ jobs:
           NODE
           grep -n '_initializeModules:(NSArray<Class> \*)modules' "$BRIDGE_FILE"
 
+          # Metro 0.51.1 uses the MD4 hash algorithm, which OpenSSL 3 in modern
+          # Node.js disables. Metro then hides the crypto error and later crashes
+          # with "Cannot read properties of undefined (reading 'transformFile')".
+          # Upstream Metro PR #752 switches this cache-key hash to MD5.
+          METRO_HASH="node_modules/metro-cache/src/stableHash.js"
+          test -f "$METRO_HASH"
+          node <<'NODE'
+          const fs = require("fs");
+          const file = "node_modules/metro-cache/src/stableHash.js";
+          let source = fs.readFileSync(file, "utf8");
+          const oldText = ".createHash('md4')";
+          const newText = ".createHash('md5')";
+          const count = source.split(oldText).length - 1;
+          if (count === 1) {
+            source = source.replace(oldText, newText);
+            fs.writeFileSync(file, source);
+            console.log("Patched Metro cache hash from MD4 to MD5 for OpenSSL 3 compatibility");
+          } else if (count === 0 && source.includes(newText)) {
+            console.log("Metro cache MD5 compatibility patch already present");
+          } else {
+            throw new Error(`Expected exactly one Metro MD4 hash call, found ${count}; refusing an unsafe patch`);
+          }
+          NODE
+          grep -n "createHash" "$METRO_HASH"
+          node --version
+          node -e "console.log('MD4 available:', (() => { try { require('crypto').createHash('md4'); return true; } catch (_) { return false; } })())"
 
       - name: Build iOS app
         env:
