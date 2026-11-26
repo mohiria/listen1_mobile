@@ -2,14 +2,12 @@ import React from 'react';
 import { Image } from 'react-native';
 
 function parseImageUrl(url) {
-  if (url.startsWith('http')) {
+  if (typeof url === 'string' && url.startsWith('http')) {
     return { uri: url };
   }
-  const d = {
-    './assets/images/logo.png': require('../assets/images/logo.png'),
-  };
 
-  return d[url];
+  // tracks without a cover (missing or empty img_url) fall back to the logo
+  return require('../assets/images/logo.png');
 }
 export class AImage extends React.PureComponent {
   props: {
