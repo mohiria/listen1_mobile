@@ -79,6 +79,18 @@ function insertArrayNextToTarget(array, item, target, compareKey) {
   return result;
 }
 
+// Name of the provider the current song is played from when that is not its
+// own, otherwise ''.
+export function getPlayingSource(state) {
+  const { nowplayingTrack, playingSource } = state;
+
+  if (!nowplayingTrack || !playingSource) {
+    return '';
+  }
+
+  return playingSource.id === nowplayingTrack.id ? playingSource.source : '';
+}
+
 function next(state, extraState) {
   let extra = extraState;
 
@@ -122,6 +134,8 @@ export const defaultPlayerState = {
   tracks: [],
   shuffleIds: [],
   skipIds: {},
+  // { id, source } once a song is being played from another provider
+  playingSource: null,
 };
 
 const playerReducerBase = (state = defaultPlayerState, action) => {
@@ -292,7 +306,7 @@ const playerReducerBase = (state = defaultPlayerState, action) => {
 const playPersistConfig = {
   key: 'playerState',
   storage,
-  blacklist: ['isPlaying', 'current', 'progress', 'skipIds'],
+  blacklist: ['isPlaying', 'current', 'progress', 'skipIds', 'playingSource'],
 };
 
 export const playerReducer = persistReducer(

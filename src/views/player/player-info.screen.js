@@ -41,12 +41,13 @@ class PlayerInfo extends React.PureComponent {
   props: {
     nowplayingTrack: Object,
     isFav: Boolean,
+    playingSourceName: String,
     onFav: Function,
     theme: Object,
   };
 
   render() {
-    const { nowplayingTrack, isFav } = this.props;
+    const { nowplayingTrack, isFav, playingSourceName } = this.props;
     const noTrack = nowplayingTrack === null;
 
     // console.log(`render ${this.constructor.name}`);
@@ -65,6 +66,7 @@ class PlayerInfo extends React.PureComponent {
           </ModalSongTitle>
           <ModalSongArtist>
             {noTrack ? 'Artist' : nowplayingTrack.artist}
+            {playingSourceName ? ` · 来自${playingSourceName}` : ''}
           </ModalSongArtist>
         </Main>
         <Side>

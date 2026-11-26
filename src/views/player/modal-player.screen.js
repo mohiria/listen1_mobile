@@ -18,6 +18,8 @@ import {
   addToMyFavorite,
   removeFromMyFavorite,
 } from '../../redux/actions';
+import { getPlayingSource } from '../../redux/player.reducer';
+import Client from '../../api/client';
 
 import { colors } from '../../config/colors';
 import { AImage } from '../../components';
@@ -149,6 +151,7 @@ class ModalPlayerView extends React.Component {
     const noTrack = nowplayingTrack === null;
 
     const isFav = this.getFavStatus();
+    const playingSource = getPlayingSource(this.props.playerState);
 
     // console.log(`render ${this.constructor.name}`);
 
@@ -164,6 +167,9 @@ class ModalPlayerView extends React.Component {
         <PlayerInfo
           nowplayingTrack={this.props.playerState.nowplayingTrack}
           isFav={isFav}
+          playingSourceName={
+            playingSource ? Client.getProviderName(playingSource) : ''
+          }
           onFav={this.onFav}
         />
         <View style={styles.sliderBtn}>

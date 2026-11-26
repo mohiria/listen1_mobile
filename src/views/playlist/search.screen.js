@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import Client from '../../api/client';
 import { playTrack, openModalLite } from '../../redux/actions';
 import { ThemeFlex, TrackRow, ListStatus } from '../../components';
-import { showToast } from '../../modules/toast';
 
 class Search extends React.Component {
   props: {
@@ -142,10 +141,6 @@ class Search extends React.Component {
   _keyExtractor = item => item.id;
 
   playTrack(item) {
-    if (item.disabled) {
-      return showToast('平台版权原因无法播放，请尝试其它平台');
-    }
-
     return this.props.dispatch(playTrack(item));
   }
   popup(item) {

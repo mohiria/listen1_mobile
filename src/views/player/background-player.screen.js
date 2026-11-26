@@ -5,6 +5,7 @@ import Video from 'react-native-video';
 import MusicControl from 'react-native-music-control';
 
 import LApi from '../../api/client';
+import { showToast } from '../../modules/toast';
 import {
   updatePlayer,
   play,
@@ -43,7 +44,7 @@ class BackgroundPlayer extends Component {
     const { playerState } = this.props;
 
     if (playerState.nowplayingTrack !== null) {
-      this.doLoadTrack(playerState.nowplayingTrack.id, false);
+      this.doLoadTrack(playerState.nowplayingTrack, false);
     }
     MusicControl.on('play', () => {
       this.props.dispatch(play());
@@ -68,7 +69,7 @@ class BackgroundPlayer extends Component {
       isDiffTrack(playerState.nowplayingTrack, nextPlayerState.nowplayingTrack)
     ) {
       if (nextPlayerState.nowplayingTrack !== null) {
-        this.doLoadTrack(nextPlayerState.nowplayingTrack.id, true);
+        this.doLoadTrack(nextPlayerState.nowplayingTrack, true);
       }
     }
     if (
@@ -150,19 +151,37 @@ class BackgroundPlayer extends Component {
     }
   };
   video: Video;
-  doLoadTrack(trackId, shouldPlay) {
+  loadCount = 0;
+  doLoadTrack(track, shouldPlay) {
     const self = this;
 
-    self.setState({ url: '' });
-    LApi.bootstrapTrack(trackId).then(url => {
-      if (url === '') {
-        // resource not available
+    self.loadCount += 1;
+    const loadNumber = self.loadCount;
 
+    self.setState({ url: '' });
+    LApi.resolveTrack(track).then(result => {
+      // another song was picked while this one was being looked for
+      if (loadNumber !== self.loadCount) {
+        return;
+      }
+      if (result.url === '') {
+        showToast(
+          result.reason === 'network'
+            ? `网络错误，无法播放「${track.title}」`
+            : `「${track.title}」所有音源都没有可播放的版本`
+        );
         self.props.dispatch(loadFail());
 
         return;
       }
-      self.setState({ url });
+      self.setState({ url: result.url });
+      self.props.dispatch(
+        updatePlayer({
+          playingSource: result.switched
+            ? { id: track.id, source: result.source }
+            : null,
+        })
+      );
       if (shouldPlay) {
         self.props.dispatch(play());
       }

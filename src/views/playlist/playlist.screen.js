@@ -136,9 +136,6 @@ class Playlist extends React.Component {
   }
 
   onPressRow(item) {
-    if (item.disabled) {
-      return showToast('平台版权原因无法播放，请尝试其它平台');
-    }
     let playlist = null;
 
     if (this.isMyPlaylist()) {

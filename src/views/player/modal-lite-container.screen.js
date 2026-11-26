@@ -76,10 +76,6 @@ class ModalLiteContainer extends React.Component {
     this.props.dispatch(closeModalLite());
   };
   onPressItem = item => {
-    if (item.disabled) {
-      return showToast('平台版权原因无法播放，请尝试其它平台');
-    }
-
     return this.props.dispatch(playTrack(item));
   };
   onPressRemoveItem = item => {

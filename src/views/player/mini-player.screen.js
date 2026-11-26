@@ -8,6 +8,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { RowFlex, ColumnFlex } from '../../components';
 import { toggleModal, togglePlay } from '../../redux/actions';
 import { miniPlayerSetting } from '../../config/settings';
+import { getPlayingSource } from '../../redux/player.reducer';
+import Client from '../../api/client';
 
 const MiniBar = styled.View`
   width: 100%;
@@ -58,12 +60,15 @@ class MiniPlayer extends React.Component {
     return (
       this.props.playerState.nowplayingTrack !==
         nextProps.playerState.nowplayingTrack ||
-      this.props.playerState.isPlaying !== nextProps.playerState.isPlaying
+      this.props.playerState.isPlaying !== nextProps.playerState.isPlaying ||
+      this.props.playerState.playingSource !==
+        nextProps.playerState.playingSource
     );
   }
   render() {
     const noTrack = this.props.playerState.nowplayingTrack === null;
     const { isPlaying } = this.props.playerState;
+    const playingSource = getPlayingSource(this.props.playerState);
 
     // console.log(`render ${this.constructor.name}`);
 
@@ -91,6 +96,9 @@ class MiniPlayer extends React.Component {
                 {noTrack
                   ? 'Artist'
                   : this.props.playerState.nowplayingTrack.artist}
+                {playingSource
+                  ? ` · 来自${Client.getProviderName(playingSource)}`
+                  : ''}
               </ArtistTitle>
             </SongInfo>
 
