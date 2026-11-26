@@ -28,10 +28,10 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<!-- Several providers still serve their interfaces and audio over plain http. -->
+		<!-- Several providers still serve their interfaces and audio over plain http.
+		     Keep this the only key here: iOS ignores NSAllowsArbitraryLoads as soon as
+		     NSAllowsLocalNetworking or NSAllowsArbitraryLoadsForMedia is present. -->
 		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
