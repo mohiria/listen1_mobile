@@ -89,6 +89,22 @@ jobs:
           NODE
           grep -n '_initializeModules:(NSArray<Class> \*)modules' "$BRIDGE_FILE"
 
+      # react-native-music-control 0.10.4 registers MPRemoteCommand handlers that return void.
+      # Current iOS requires MPRemoteCommandHandlerStatus and throws on registration otherwise.
+      - name: Patch music control remote command handlers
+        run: |
+          set -euo pipefail
+          MC_FILE="node_modules/react-native-music-control/ios/MusicControlManager.m"
+          test -f "$MC_FILE"
+          perl -pi -e 's/^- \(void\)(on\w+):\((MP\w+Event)\*\)event \{ (\[self sendEvent.*\];) \}/- (MPRemoteCommandHandlerStatus)$1:($2*)event { $3 return MPRemoteCommandHandlerStatusSuccess; }/' "$MC_FILE"
+          COUNT=$(grep -c '^- (MPRemoteCommandHandlerStatus)on' "$MC_FILE")
+          echo "Patched handlers: $COUNT"
+          test "$COUNT" -eq 13
+          if grep -n '^- (void)on[A-Za-z]*:(MP' "$MC_FILE"; then
+            echo "Unpatched remote command handler remains" >&2
+            exit 1
+          fi
+
       # Run Metro before the expensive native build. This is the exact bundle
       # operation the Xcode build phase performs, but with verbose diagnostics.
       - name: Preflight React Native JavaScript bundle
