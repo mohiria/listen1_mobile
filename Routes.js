@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 import { StatusBar } from 'react-native';
 import { fromRight } from 'react-navigation-transitions';
-import { withTheme, ThemeProvider } from 'styled-components';
+import styled, { withTheme, ThemeProvider } from 'styled-components';
 import { animationSetting } from './src/config/settings';
 
 import { blackTheme, whiteTheme } from './src/config/theme';
@@ -62,6 +62,8 @@ const MainStack = createStackNavigator(
     transitionConfig: () => fromRight(animationSetting.transitionTime),
     defaultNavigationOptions: {
       headerBackTitle: null,
+      // safe area is applied once by the native SafeAreaView at app root
+      headerForceInset: { top: 'never', bottom: 'never' },
     },
   }
 );
@@ -77,6 +79,11 @@ const ThemeStatusBar = withTheme(({ theme }) => {
   );
 });
 
+const ThemeSafeArea = styled.SafeAreaView`
+  flex: 1;
+  background-color: ${(props) => props.theme.windowColor};
+`;
+
 class App extends React.Component {
   props: {
     settingState: Object,
@@ -88,14 +95,16 @@ class App extends React.Component {
           this.props.settingState.theme === 'black' ? blackTheme : whiteTheme
         }
       >
-        <ThemeFlex>
-          <ThemeAppContainer />
-          <ThemeStatusBar />
-          <BackgroundPlayer />
-          <MiniPlayer />
-          <ModalPlayerContainer />
-          <ModalLiteContainer />
-        </ThemeFlex>
+        <ThemeSafeArea>
+          <ThemeFlex>
+            <ThemeAppContainer />
+            <ThemeStatusBar />
+            <BackgroundPlayer />
+            <MiniPlayer />
+            <ModalPlayerContainer />
+            <ModalLiteContainer />
+          </ThemeFlex>
+        </ThemeSafeArea>
       </ThemeProvider>
     );
   }

@@ -11,8 +11,7 @@ import { miniPlayerSetting } from '../../config/settings';
 
 const MiniBar = styled.View`
   width: 100%;
-  height: ${miniPlayerSetting.height + miniPlayerSetting.paddingBottom};
-  paddingBottom: ${miniPlayerSetting.paddingBottom}}
+  height: ${miniPlayerSetting.height};
   background-color: ${(props) => props.theme.windowColor};
 `;
 const SongLogo = styled.Image`

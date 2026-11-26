@@ -22,14 +22,10 @@ import {
 import { colors } from '../../config/colors';
 import { AImage } from '../../components';
 
-import { modalPlayerSetting } from '../../config/settings';
-
-const ModalPlayer = styled.View`
+const ModalPlayer = styled.SafeAreaView`
   flex: 1 0;
   align-items: center;
   background: ${(props) => props.theme.windowColor};
-  padding-top: ${modalPlayerSetting.paddingTop};
-  padding-bottom: ${modalPlayerSetting.paddingBottom};
 `;
 
 const ModalSongCover = styled(AImage)`
