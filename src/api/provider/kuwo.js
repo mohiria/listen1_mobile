@@ -1,65 +1,13 @@
 /* eslint no-bitwise: ["error", { "allow": ["&"] }] */
 import queryString from 'query-string';
-
-import AsyncStorage from '@react-native-community/async-storage';
 import request from '../request';
+import { kuwoIsRestricted, kuwoIsPromptAudio } from '../restricted';
 
-class MyStorage {
-  static setData = async (key, value) => {
-    try {
-      await AsyncStorage.setItem(key, value);
-    } catch (error) {
-      // console.log(error);
-    }
-
-    return null;
-  };
-  static getData = async (key) => {
-    try {
-      return await AsyncStorage.getItem(key);
-    } catch (error) {
-      // console.log(error);
-      return null;
-    }
-  };
-  static deleteData = async (key) => {
-    try {
-      return await AsyncStorage.removeItem(key);
-    } catch (error) {
-      // console.log(error);
-
-      return null;
-    }
-  };
-}
-
-async function requestAPI(url, data, refreshToken = false) {
-  const token = await getToken(refreshToken);
-  return request(url, {
-    method: 'get',
-    headers: {
-      referer: 'https://www.kuwo.cn/',
-      csrf: token,
-      Cookie: 'kw_token=' + token,
-    },
-  })
-    .then((response) => {
-      return response.json();
-    })
-    .then((response) => {
-      if (response.success === false && !refreshToken) {
-        return requestAPI(url, data, true);
-      }
-      return response;
-    });
-}
 function getSmallImageUrl(url) {
   return `${url}?param=140y140`;
 }
 function showPlaylist(offset) {
-  const url = `http://www.kuwo.cn/www/categoryNew/getPlayListInfoUnderCategory?type=taglist&digest=10000&id=37&start=${
-    offset * 30
-  }&count=30`;
+  const url = `http://www.kuwo.cn/www/categoryNew/getPlayListInfoUnderCategory?type=taglist&digest=10000&id=37&start=${offset}&count=30`;
 
   return request(url)
     .then((response) => {
@@ -192,7 +140,7 @@ function html_decode(str) {
 }
 
 function kw_render_playlist_result_item(item) {
-  const tracks = {
+  return {
     id: `kwtrack_${item.id}`,
     title: html_decode(item.name),
     artist: item.artist,
@@ -201,21 +149,11 @@ function kw_render_playlist_result_item(item) {
     album_id: `kwalbum_${item.albumid}`,
     source: 'kuwo',
     source_url: `http://www.kuwo.cn/yinyue/${item.id}`,
-    img_url: '',
-    url: `xmtrack_${item.id}`,
+    img_url: item.albumpic || item.artistPic || '',
+    url: `kwtrack_${item.id}`,
     lyric_url: item.id,
+    disabled: kuwoIsRestricted(item),
   };
-  const target_url = `http://artistpicserver.kuwo.cn/pic.web?type=rid_pic&pictype=url&size=240&rid=${item.id}`;
-  request(target_url)
-    .then((response) => {
-      return response.text();
-    })
-    .then((data) => {
-      tracks.img_url = data;
-    })
-    // the cover is optional, a song without one is still usable
-    .catch(() => {});
-  return tracks;
 }
 
 function bootstrapTrack(trackId) {
@@ -235,59 +173,60 @@ function bootstrapTrack(trackId) {
       return res.text();
     })
     .then((res) => {
+      // a restricted song yields the address of a spoken prompt, not the song
+      if (!/^https?:\/\//.test(res) || kuwoIsPromptAudio(res)) {
+        return '';
+      }
+
       return res;
     });
 }
 
-async function getToken(refresh) {
-  const kgKey = 'kw_token';
-  // let tokenString = await MyStorage.getData(kgKey);
-  // if (tokenString && !refresh) {
-  //   return JSON.parse(tokenString);
-  // }
-  const token_url = 'https://www.kuwo.cn/';
-  const response = await request(token_url);
-  const setCookieField = response.headers.get('set-cookie');
-  console.log(response.headers.get('set-cookie'));
-  const token = getCookieValue(setCookieField, 'kw_token');
-  await MyStorage.setData(kgKey, JSON.stringify(token));
-  return token;
-}
-
-function getCookieValue(cookie, key) {
-  const regex = new RegExp(`${key}=([^;]+);`);
-  const result = regex.exec(cookie);
-
-  if (result !== null && result.length > 1) {
-    return result[1];
+function kw_search_cover(item) {
+  if (item.web_albumpic_short) {
+    return `https://img2.kuwo.cn/star/albumcover/${item.web_albumpic_short}`;
+  }
+  if (item.web_artistpic_short) {
+    return `https://img1.kuwo.cn/star/starheads/${item.web_artistpic_short}`;
   }
 
-  return null;
+  return '';
 }
 
 async function search(keyword, curpage) {
-  const target_url = `https://www.kuwo.cn/api/www/search/searchMusicBykeyWord?key=${keyword}&pn=${curpage}&rn=30`;
+  // www.kuwo.cn/api/www/search needs a token and a Secret header derived
+  // from a cookie whose name keeps changing, and answers "The request is
+  // illegal!" without them. This one needs neither. Its pages count from 0.
+  const target_url = `http://search.kuwo.cn/r.s?client=kt&all=${encodeURIComponent(
+    keyword
+  )}&pn=${
+    curpage - 1
+  }&rn=20&vipver=1&ft=music&encoding=utf8&rformat=json&mobi=1`;
 
-  return requestAPI(target_url).then((data) => {
-    let tracks = data.data.list.map((item) => {
-      const musicrid = item.musicrid.split('_')[1];
-      const track = {
-        id: `kwtrack_${musicrid}`,
-        title: html_decode(item.name),
-        artist: item.artist,
-        artist_id: `kwartist_${item.artistid}`,
-        album: html_decode(item.album),
-        album_id: `kwalbum_${item.albumid}`,
-        source: 'kuwo',
-        source_url: `http://www.kuwo.cn/yinyue/${musicrid}`,
-        img_url: item.albumpic,
-        url: `xmtrack_${musicrid}`,
-        lyric_url: musicrid,
-      };
-      return track;
+  return request(target_url)
+    .then((response) => response.json())
+    .then((data) => {
+      const tracks = data.abslist.map((item) => {
+        const musicrid = item.MUSICRID.split('_')[1];
+
+        return {
+          id: `kwtrack_${musicrid}`,
+          title: html_decode(item.NAME),
+          artist: html_decode(item.ARTIST),
+          artist_id: `kwartist_${item.ARTISTID}`,
+          album: html_decode(item.ALBUM),
+          album_id: `kwalbum_${item.ALBUMID}`,
+          source: 'kuwo',
+          source_url: `http://www.kuwo.cn/yinyue/${musicrid}`,
+          img_url: kw_search_cover(item),
+          url: `kwtrack_${musicrid}`,
+          lyric_url: musicrid,
+          disabled: kuwoIsRestricted(item),
+        };
+      });
+
+      return { result: tracks, total: Number(data.TOTAL) };
     });
-    return { result: tracks, total: data.data.total };
-  });
 }
 
 function parseUrl(url) {
