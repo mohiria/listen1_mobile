@@ -43,3 +43,14 @@ export function isSameSong(a, b) {
     normalize(firstArtist(a.artist)) === normalize(firstArtist(b.artist))
   );
 }
+
+// What to type into another provider's search box to find this song.
+export function searchKeyword(song) {
+  const plain = (text) => {
+    const whole = String(text).normalize('NFKC');
+
+    return (stripBrackets(whole).trim() || whole.trim()).replace(/\s+/g, ' ');
+  };
+
+  return `${plain(song.title)} ${plain(firstArtist(song.artist))}`;
+}

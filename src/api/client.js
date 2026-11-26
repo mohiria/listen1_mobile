@@ -2,6 +2,7 @@ import qq from './provider/qq';
 import netease from './provider/netease';
 import kugou from './provider/kugou';
 import kuwo from './provider/kuwo';
+import { createResolver } from './resolve';
 // import bilibili from './provider/bilibili';
 // import migu from './provider/migu';
 
@@ -20,6 +21,16 @@ enabledProvider.forEach((provider) => {
   prefix2provider[provider.meta.platformId] = provider;
   enName2NameDict[provider.meta.enName] = provider.meta.name;
 });
+
+// the order in which the other providers are preferred when switching
+const resolveTrack = createResolver(
+  [netease, qq, kuwo, kugou].map((provider) => ({
+    name: provider.meta.enName,
+    prefix: provider.meta.platformId,
+    search: (keyword) => provider.search(keyword, 1).then((r) => r.result),
+    bootstrapTrack: provider.bootstrapTrack,
+  }))
+);
 
 function getProviderByItemId(itemId) {
   const prefix = itemId.slice(0, 2);
@@ -60,6 +71,10 @@ export default class Client {
 
     return provider.bootstrapTrack(trackId);
   }
+
+  // Address of a song, taken from another provider when its own withholds
+  // it. See ./resolve.js for what it resolves with.
+  static resolveTrack = resolveTrack;
 
   static parseUrl(url) {
     let result = null;
