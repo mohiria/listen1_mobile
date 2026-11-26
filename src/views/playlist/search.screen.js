@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 
 import Client from '../../api/client';
 import { playTrack, openModalLite } from '../../redux/actions';
-import { ThemeFlex, TrackRow } from '../../components';
+import { ThemeFlex, TrackRow, ListStatus } from '../../components';
 import { showToast } from '../../modules/toast';
 
 class Search extends React.Component {
@@ -23,6 +23,7 @@ class Search extends React.Component {
       lastSearch: '',
       total: -1,
       isRefreshing: false,
+      failedPage: null,
     };
     this.onEndReachedCalledDuringMomentum = true;
     this.playTrack = this.playTrack.bind(this);
@@ -61,34 +62,71 @@ class Search extends React.Component {
     }
     if (searchPage === undefined || searchPage === 1) {
       searchPage = 1;
-      this.setState({ tracks: [], isRefreshing: true });
+      this.setState({ tracks: [], isRefreshing: true, failedPage: null });
     } else {
-      this.setState({ isRefreshing: true });
+      this.setState({ isRefreshing: true, failedPage: null });
     }
 
     // console.log(`searching ${text} in ${this.props.tabIndex}, page: ${page}`);
     this.setState({});
-    Client.search(text, searchPage, this.props.platformId).then(r => {
-      if (searchPage === 1) {
-        this.flatListRef.scrollToOffset({ animated: true, offset: 0 });
+    Client.search(text, searchPage, this.props.platformId)
+      .then(r => {
+        if (searchPage === 1) {
+          this.flatListRef.scrollToOffset({ animated: true, offset: 0 });
+          this.setState({
+            tracks: r.result,
+            lastSearch: text,
+            total: r.total,
+            initialized: true,
+            isRefreshing: false,
+          });
+        } else {
+          this.setState({
+            tracks: [
+              ...this.state.tracks.slice(0, (page - 1) * 20),
+              ...r.result,
+            ],
+            lastSearch: text,
+            isRefreshing: false,
+          });
+        }
+      })
+      .catch(() => {
+        // lastSearch is set so that the failed search is not fired again by
+        // the next props update; the user retries from the list instead.
         this.setState({
-          tracks: r.result,
-          lastSearch: text,
-          total: r.total,
-          initialized: true,
-          isRefreshing: false,
-        });
-      } else {
-        this.setState({
-          tracks: [...this.state.tracks.slice(0, (page - 1) * 20), ...r.result],
           lastSearch: text,
           isRefreshing: false,
+          failedPage: searchPage,
         });
-      }
-    });
+      });
   }
+  renderStatus = () => {
+    const { isRefreshing, failedPage, lastSearch, tracks } = this.state;
+
+    if (isRefreshing) {
+      return null;
+    }
+    if (failedPage !== null) {
+      return (
+        <ListStatus
+          message="搜索失败"
+          onRetry={() => this.doSearch(lastSearch, failedPage)}
+        />
+      );
+    }
+    if (lastSearch !== '' && tracks.length === 0) {
+      return <ListStatus message="没有结果" />;
+    }
+
+    return null;
+  };
   handleLoadMore = () => {
     if (this.onEndReachedCalledDuringMomentum) {
+      return;
+    }
+    // after a failure the list waits for the retry button
+    if (this.state.failedPage !== null) {
       return;
     }
     if (
@@ -135,6 +173,7 @@ class Search extends React.Component {
             );
           }}
           keyExtractor={this._keyExtractor}
+          ListFooterComponent={this.renderStatus}
           onEndReachedThreshold={0.4}
           onEndReached={this.handleLoadMore}
           onMomentumScrollBegin={() => {

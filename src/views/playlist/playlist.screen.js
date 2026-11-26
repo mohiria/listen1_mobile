@@ -10,7 +10,13 @@ import {
   createMyPlaylist,
   openModalLite,
 } from '../../redux/actions';
-import { Flex, RowFlex, TrackRow, AImage } from '../../components';
+import {
+  Flex,
+  RowFlex,
+  TrackRow,
+  AImage,
+  ListStatus,
+} from '../../components';
 import { showToast } from '../../modules/toast';
 
 const PlaylistHeader = styled(RowFlex)`
@@ -71,6 +77,7 @@ class Playlist extends React.Component {
         tracks: [],
         info: item.info,
         loading: true,
+        failed: false,
       };
     }
     this.onPressRow = this.onPressRow.bind(this);
@@ -82,15 +89,25 @@ class Playlist extends React.Component {
       this.setState({ loading: false });
       return;
     }
-    this.setState({ loading: true });
-    LApi.getPlaylist(this.state.id).then((r) => {
-      if (this.state.info.cover_img_url !== undefined) {
-        this.setState({ tracks: r.tracks, loading: false });
-      } else {
-        this.setState({ tracks: r.tracks, info: r.info, loading: false });
-      }
-    });
+    this.loadPlaylist();
   }
+  loadPlaylist = () => {
+    this.setState({ loading: true, failed: false });
+    // Promise.resolve: getPlaylist can throw or return a non-promise for an
+    // id it does not recognise.
+    Promise.resolve()
+      .then(() => LApi.getPlaylist(this.state.id))
+      .then((r) => {
+        if (this.state.info.cover_img_url !== undefined) {
+          this.setState({ tracks: r.tracks, loading: false });
+        } else {
+          this.setState({ tracks: r.tracks, info: r.info, loading: false });
+        }
+      })
+      .catch(() => {
+        this.setState({ loading: false, failed: true });
+      });
+  };
   shouldComponentUpdate(nextProps, nextState) {
     if (this.isMyPlaylist()) {
       if (
@@ -100,6 +117,12 @@ class Playlist extends React.Component {
         return true;
       }
     } else if (this.state.tracks !== nextState.tracks) {
+      return true;
+    }
+    if (
+      this.state.loading !== nextState.loading ||
+      this.state.failed !== nextState.failed
+    ) {
       return true;
     }
     if (
@@ -166,7 +189,10 @@ class Playlist extends React.Component {
                     <ActivityIndicator color="#777777" />
                   </PlaceHolder>
                 )}
-                {this.state.loading === false && (
+                {this.state.loading === false && this.state.failed === true && (
+                  <ListStatus message="加载失败" onRetry={this.loadPlaylist} />
+                )}
+                {this.state.loading === false && !this.state.failed && (
                   <RowFlex style={{ paddingLeft: 20, paddingRight: 20 }}>
                     <ControlButton
                       style={{ flex: 1 }}
@@ -240,6 +266,12 @@ class Playlist extends React.Component {
                     )}
                   </RowFlex>
                 )}
+                {this.state.loading === false &&
+                  !this.state.failed &&
+                  !this.isMyPlaylist() &&
+                  tracks.length === 0 && (
+                    <ListStatus message="歌单里没有歌曲" />
+                  )}
               </Flex>
             );
           }}

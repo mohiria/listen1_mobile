@@ -4,6 +4,7 @@ import styled, { withTheme } from 'styled-components';
 import Client from '../../api/client';
 import { FlatGrid } from '../../../vendor/react-native-super-grid';
 import { playlistSetting } from '../../config/settings';
+import { ListStatus } from '../../components';
 
 const SongTitle = styled.Text`
   font-size: ${playlistSetting.briefTitleFontSize};
@@ -21,7 +22,7 @@ class PlaylistGrid extends PureComponent {
   };
   constructor(props) {
     super(props);
-    this.state = { result: [], refreshing: true };
+    this.state = { result: [], refreshing: true, failed: false };
   }
 
   componentDidMount() {
@@ -29,19 +30,48 @@ class PlaylistGrid extends PureComponent {
   }
 
   requestData = offset => {
-    this.setState({ refreshing: true });
-    Client.showPlaylist(offset, this.props.platformId).then(({ result: r }) => {
-      if (offset === 0) {
-        this.setState({ result: r, refreshing: false });
-      } else {
-        this.setState({
-          result: this.state.result.concat(r),
-          refreshing: false,
-        });
-      }
-    });
+    this.setState({ refreshing: true, failed: false });
+    Client.showPlaylist(offset, this.props.platformId)
+      .then(({ result: r }) => {
+        if (offset === 0) {
+          this.setState({ result: r, refreshing: false });
+        } else {
+          this.setState({
+            result: this.state.result.concat(r),
+            refreshing: false,
+          });
+        }
+      })
+      .catch(() => {
+        this.setState({ refreshing: false, failed: true });
+      });
+  };
+  renderStatus = () => {
+    const { refreshing, failed, result } = this.state;
+
+    if (refreshing) {
+      return null;
+    }
+    if (failed) {
+      return (
+        <ListStatus
+          message="加载失败"
+          onRetry={() => this.requestData(result.length)}
+        />
+      );
+    }
+    if (result.length === 0) {
+      return <ListStatus message="没有歌单" />;
+    }
+
+    return null;
   };
   handleLoadMore = () => {
+    // after a failure the list waits for the retry button instead of
+    // asking again every time it reaches its end
+    if (this.state.refreshing || this.state.failed) {
+      return;
+    }
     this.requestData(this.state.result.length);
   };
   render() {
@@ -94,6 +124,7 @@ class PlaylistGrid extends PureComponent {
             </TouchableOpacity>
           );
         }}
+        ListFooterComponent={this.renderStatus}
         onEndReachedThreshold={0.4}
         onEndReached={this.handleLoadMore}
       />

@@ -8,3 +8,4 @@ export * from './image.component';
 export * from './list-editor.component';
 export * from './option-row.component';
 export * from './table-cell-row.component';
+export * from './list-status.component';
