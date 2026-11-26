@@ -1,0 +1,129 @@
+name: Build unsigned iOS IPA (phase 2)
+
+on:
+  push:
+    branches:
+      - phase-2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    runs-on: macos-26
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Show toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          node --version
+          ruby --version
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Record the commit being built
+        run: |
+          set -euo pipefail
+          printf "export const commit = '%s';\n" "${GITHUB_SHA::7}" > app/buildInfo.ts
+          cat app/buildInfo.ts
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # Run Metro before the expensive native build, so a JavaScript mistake
+      # fails in a minute instead of after the whole native compile.
+      - name: Preflight JavaScript bundle
+        run: |
+          set -euo pipefail
+          mkdir -p build/preflight/assets
+          npx react-native bundle \
+            --entry-file index.js \
+            --platform ios \
+            --dev false \
+            --reset-cache \
+            --bundle-output build/preflight/main.jsbundle \
+            --assets-dest build/preflight/assets
+          test -s build/preflight/main.jsbundle
+          ls -lh build/preflight/main.jsbundle
+
+      - name: Install CocoaPods dependencies
+        run: |
+          set -euo pipefail
+          bundle install
+          cd ios
+          bundle exec pod install
+
+      # The lock files are produced here because the project has no Mac to
+      # produce them on. They are committed back by hand.
+      - name: Keep the lock files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lock-files
+          if-no-files-found: ignore
+          path: |
+            ios/Podfile.lock
+            Gemfile.lock
+
+      - name: Build iOS app
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          if ! xcodebuild \
+            -workspace ios/Listen1.xcworkspace \
+            -scheme Listen1 \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            build > build/xcodebuild.log 2>&1; then
+            grep -n -E "error:|fatal error|\*\* BUILD FAILED" build/xcodebuild.log | head -100 || true
+            tail -150 build/xcodebuild.log
+            exit 1
+          fi
+          tail -5 build/xcodebuild.log
+
+      - name: Keep the build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          if-no-files-found: ignore
+          path: build/xcodebuild.log
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Listen1.app"
+          test -d "$APP_PATH"
+          test -s "$APP_PATH/main.jsbundle"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/Listen1.app
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent build/ipa/Payload build/Listen1.ipa
+          test -s build/Listen1.ipa
+          unzip -l build/Listen1.ipa | head -40
+
+      - name: Publish IPA to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-ipa-phase2
+          target_commitish: phase-2
+          name: Listen 1 iOS IPA (phase 2)
+          prerelease: true
+          make_latest: false
+          files: build/Listen1.ipa
