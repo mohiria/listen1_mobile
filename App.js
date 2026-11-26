@@ -2,7 +2,7 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import { persistStore, persistReducer } from 'redux-persist';
-import { Text } from 'react-native';
+import { Text, ScrollView } from 'react-native';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
 import { PersistGate } from 'redux-persist/integration/react';
 
@@ -35,7 +35,29 @@ Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
 
 export default class App extends React.Component {
+  state = { error: null };
+  componentDidMount() {
+    // TEMP(phase 1): show JS errors on screen instead of crashing, remove after acceptance
+    global.ErrorUtils.setGlobalHandler((error) => this.setState({ error }));
+  }
+  componentDidCatch(error) {
+    this.setState({ error });
+  }
   render() {
+    const { error } = this.state;
+
+    if (error !== null) {
+      return (
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 80 }}>
+          <Text selectable style={{ color: '#c00', fontSize: 12 }}>
+            {`JS ERROR\n${String(error && error.message)}\n\n${String(
+              error && error.stack
+            )}`}
+          </Text>
+        </ScrollView>
+      );
+    }
+
     return (
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
