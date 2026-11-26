@@ -9,6 +9,8 @@
   "dependencies": {
     "esbuild": "^0.28.2",
     "md5": "^2.2.1",
-    "query-string": "^6.8.1"
+    "query-string": "^6.8.1",
+    "redux": "^5.0.1",
+    "redux-persist": "^6.0.0"
   }
 }

@@ -1,7 +1,7 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 
 import { persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import storage from '@react-native-async-storage/async-storage';
 import { TYPE } from './actions';
 
 const ENUM_PLAYMODE = Object.freeze({
