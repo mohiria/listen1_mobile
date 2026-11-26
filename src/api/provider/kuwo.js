@@ -46,7 +46,7 @@ async function requestAPI(url, data, refreshToken = false) {
       return response.json();
     })
     .then((response) => {
-      if (response.success === false) {
+      if (response.success === false && !refreshToken) {
         return requestAPI(url, data, true);
       }
       return response;
