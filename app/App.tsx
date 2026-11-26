@@ -13,6 +13,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import { commit } from './buildInfo';
+import SelfCheck from './SelfCheck';
 
 type ErrorScreenState = { error: Error | null };
 
@@ -75,6 +76,7 @@ function Shell() {
       <Text style={[styles.detail, { color }]}>
         {`安全区 上 ${insets.top} 下 ${insets.bottom}`}
       </Text>
+      <SelfCheck color={color} />
     </View>
   );
 }
