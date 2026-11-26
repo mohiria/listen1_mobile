@@ -91,6 +91,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             build > build/xcodebuild.log 2>&1; then
             grep -n -E "error:|fatal error|\*\* BUILD FAILED" build/xcodebuild.log | head -100 || true
             tail -150 build/xcodebuild.log
@@ -123,7 +124,7 @@ jobs:
         with:
           tag_name: ios-ipa-phase2
           target_commitish: phase-2
-          name: Listen 1 iOS IPA (phase 2)
+          name: Listen 1 2.0 iOS IPA (phase 2)
           prerelease: true
           make_latest: false
           files: build/Listen1.ipa
