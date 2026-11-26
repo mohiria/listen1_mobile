@@ -1,7 +1,7 @@
-/* eslint no-bitwise: ["error", { "allow": ["&"] }] */
 import queryString from 'query-string';
 import { weapi } from '../../modules/crypto';
 import request from '../request';
+import { neteaseIsRestricted, neteaseIsTrialClip } from '../restricted';
 
 function requestAPI(url, data) {
   return request(url, {
@@ -47,48 +47,8 @@ function showPlaylist(offset) {
       return { result: playlists };
     });
 }
-function getNEScore(song) {
-  if (!song) return 0;
-  const privilege = song.privilege;
-
-  if (song.program) return 0;
-
-  if (privilege) {
-    if (privilege.st != null && privilege.st < 0) {
-      return 100;
-    }
-    if (
-      privilege.fee > 0 &&
-      privilege.fee !== 8 &&
-      privilege.payed === 0 &&
-      privilege.pl <= 0
-    )
-      return 10;
-    if (privilege.fee === 16 || (privilege.fee === 4 && privilege.flag & 2048))
-      return 11;
-    if (
-      (privilege.fee === 0 || privilege.payed) &&
-      privilege.pl > 0 &&
-      privilege.dl === 0
-    )
-      return 1e3;
-    if (privilege.pl === 0 && privilege.dl === 0) return 100;
-
-    return 0;
-  }
-
-  if (song.status >= 0) return 0;
-  if (song.fee > 0) return 10;
-
-  return 100;
-}
-
-function isPlayable(song) {
-  return getNEScore(song) < 100;
-}
-
-function convert(allowAll) {
-  return (songInfo) => ({
+function convert(songInfo, privilege) {
+  return {
     id: `netrack_${songInfo.id}`,
     title: songInfo.name,
     artist: songInfo.ar[0].name,
@@ -99,8 +59,8 @@ function convert(allowAll) {
     source_url: `http://music.163.com/#/song?id=${songInfo.id}`,
     img_url: songInfo.al.picUrl,
     url: `netrack_${songInfo.id}`,
-    disabled: allowAll ? false : !isPlayable(songInfo),
-  });
+    disabled: neteaseIsRestricted(privilege),
+  };
 }
 
 function getPlaylist(playlistId) {
@@ -114,7 +74,7 @@ function getPlaylist(playlistId) {
     csrf_token: '',
   };
 
-  const playlist_url = 'http://music.163.com/weapi/v3/playlist/detail';
+  const playlist_url = 'https://music.163.com/weapi/v3/playlist/detail';
   const tracks_url = 'https://music.163.com/weapi/v3/song/detail';
 
   return requestAPI(playlist_url, data).then((resData) => {
@@ -134,7 +94,15 @@ function getPlaylist(playlistId) {
     };
 
     return requestAPI(tracks_url, data).then((response) => {
-      const tracks = response.songs.map(convert(true));
+      // the privilege data comes in a list beside the songs
+      const privileges = {};
+
+      (response.privileges || []).forEach((privilege) => {
+        privileges[privilege.id] = privilege;
+      });
+      const tracks = response.songs.map((song) =>
+        convert(song, privileges[song.id])
+      );
       return { info, tracks };
     });
   });
@@ -142,7 +110,7 @@ function getPlaylist(playlistId) {
 
 function bootstrapTrack(trackId) {
   const url =
-    'http://music.163.com/weapi/song/enhance/player/url/v1?csrf_token=';
+    'https://music.163.com/weapi/song/enhance/player/url/v1?csrf_token=';
 
   const songId = trackId.slice('netrack_'.length);
 
@@ -154,31 +122,36 @@ function bootstrapTrack(trackId) {
   };
 
   return requestAPI(url, data).then((resData) => {
-    const { url: songUrl } = resData.data[0];
+    const urlInfo = resData.data[0];
 
-    if (songUrl === null) {
+    // a member-only song yields the address of a 30 to 45 second trial clip
+    if (!urlInfo.url || neteaseIsTrialClip(urlInfo)) {
       return '';
     }
 
-    return songUrl;
+    return urlInfo.url;
   });
 }
 
 function search(keyword, page) {
-  const url = 'https://music.163.com/weapi/cloudsearch/get/web';
+  // cloudsearch/get/web answers {"code":50000005} to this request, whatever
+  // user agent it carries; cloudsearch/pc returns the same structure.
+  const url = 'https://music.163.com/weapi/cloudsearch/pc';
+  // the search screen pages by 20
   const data = {
     csrf_token: '',
-    hlposttag: '</span>',
-    hlpretag: '<span class="s-fc7">',
-    limit: '30',
-    offset: (30 * (page - 1)).toString(),
+    limit: '20',
+    offset: (20 * (page - 1)).toString(),
     s: keyword,
     total: 'false',
     type: '1',
   };
 
   return requestAPI(url, data).then((resData) => {
-    const tracks = resData.result.songs.map(convert(false));
+    // a search without matches has no songs field
+    const tracks = (resData.result.songs || []).map((song) =>
+      convert(song, song.privilege)
+    );
 
     return {
       result: tracks,
