@@ -2,6 +2,7 @@
 import queryString from 'query-string';
 
 import AsyncStorage from '@react-native-community/async-storage';
+import request from '../request';
 
 class MyStorage {
   static setData = async (key, value) => {
@@ -34,7 +35,7 @@ class MyStorage {
 
 async function requestAPI(url, data, refreshToken = false) {
   const token = await getToken(refreshToken);
-  return fetch(url, {
+  return request(url, {
     method: 'get',
     headers: {
       referer: 'https://www.kuwo.cn/',
@@ -50,9 +51,6 @@ async function requestAPI(url, data, refreshToken = false) {
         return requestAPI(url, data, true);
       }
       return response;
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 function getSmallImageUrl(url) {
@@ -63,7 +61,7 @@ function showPlaylist(offset) {
     offset * 30
   }&count=30`;
 
-  return fetch(url)
+  return request(url)
     .then((response) => {
       return response.json();
     })
@@ -78,9 +76,6 @@ function showPlaylist(offset) {
         source_url: `http://www.kuwo.cn/playlist/index?pid=${item.id}`,
       }));
       return { result, hasNextPage: true };
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 function getNEScore(song) {
@@ -173,7 +168,7 @@ function getPlaylist(playlistId) {
 async function kw_get_playlist(playlistId) {
   const target_url = `http://nplserver.kuwo.cn/pl.svc?op=getlistinfo&pn=0&rn=200&encode=utf-8&keyset=pl2012&pcmp4=1&pid=${playlistId}&vipver=MUSIC_9.0.2.0_W1&newver=1`;
 
-  return await fetch(target_url)
+  return await request(target_url)
     .then((response) => {
       return response.json();
     })
@@ -211,13 +206,15 @@ function kw_render_playlist_result_item(item) {
     lyric_url: item.id,
   };
   const target_url = `http://artistpicserver.kuwo.cn/pic.web?type=rid_pic&pictype=url&size=240&rid=${item.id}`;
-  fetch(target_url)
+  request(target_url)
     .then((response) => {
       return response.text();
     })
     .then((data) => {
       tracks.img_url = data;
-    });
+    })
+    // the cover is optional, a song without one is still usable
+    .catch(() => {});
   return tracks;
 }
 
@@ -229,7 +226,7 @@ function bootstrapTrack(trackId) {
     'type=convert_url&format=mp3&response=url&rid='
   }${songId}`;
 
-  return fetch(target_url, {
+  return request(target_url, {
     headers: {
       referer: 'https://www.kuwo.cn/',
     },
@@ -249,7 +246,7 @@ async function getToken(refresh) {
   //   return JSON.parse(tokenString);
   // }
   const token_url = 'https://www.kuwo.cn/';
-  const response = await fetch(token_url);
+  const response = await request(token_url);
   const setCookieField = response.headers.get('set-cookie');
   console.log(response.headers.get('set-cookie'));
   const token = getCookieValue(setCookieField, 'kw_token');

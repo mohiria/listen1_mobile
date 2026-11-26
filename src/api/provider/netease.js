@@ -1,9 +1,10 @@
 /* eslint no-bitwise: ["error", { "allow": ["&"] }] */
 import queryString from 'query-string';
 import { weapi } from '../../modules/crypto';
+import request from '../request';
 
 function requestAPI(url, data) {
-  return fetch(url, {
+  return request(url, {
     method: 'POST',
     headers: {
       referer: 'https://music.163.com/',
@@ -15,9 +16,6 @@ function requestAPI(url, data) {
   })
     .then((response) => {
       return response.json();
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 function getSmallImageUrl(url) {
@@ -47,9 +45,6 @@ function showPlaylist(offset) {
       }));
 
       return { result: playlists };
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 function getNEScore(song) {

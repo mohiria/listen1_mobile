@@ -1,3 +1,5 @@
+import request from '../request';
+
 function htmlDecode(s) {
   return s;
 }
@@ -61,7 +63,7 @@ function showPlaylist(offset) {
   const url = `https://c.y.qq.com/splcloud/fcgi-bin/fcg_get_diss_by_tag.fcg?picmid=1&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0&categoryId=10000000&sortId=5&sin=${offset}&ein=${29 +
     offset}`;
 
-  return fetch(url, {
+  return request(url, {
     headers: {
       Referer: 'https://y.qq.com/',
     },
@@ -76,9 +78,6 @@ function showPlaylist(offset) {
       }));
 
       return { result: playlists };
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 
@@ -90,7 +89,7 @@ function search(keyword, page) {
       '&w='}${keyword}&zhidaqu=1&catZhida=1` +
     `&t=0&flag=1&ie=utf-8&sem=1&aggr=0&perpage=20&n=20&p=${page}&remoteplace=txt.mqq.all&_=1459991037831&jsonpCallback=jsonp4`;
 
-  return fetch(url, {
+  return request(url, {
     headers: {
       Referer: 'https://y.qq.com/',
     },
@@ -104,9 +103,6 @@ function search(keyword, page) {
       const tracks = jsonData.data.song.list.map(item => qqConvertSong(item));
 
       return { result: tracks, total: jsonData.data.song.totalnum };
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 
@@ -119,7 +115,7 @@ function getPlaylist(playlistId) {
     '&format=jsonp&inCharset=GB2312&outCharset=utf-8&notice=0' +
     '&platform=yqq&jsonpCallback=jsonCallback&needNewCode=0';
 
-  return fetch(targetUrl, {
+  return request(targetUrl, {
     headers: {
       Referer: 'https://y.qq.com/',
     },
@@ -147,9 +143,6 @@ function getPlaylist(playlistId) {
         tracks,
         info,
       };
-    })
-    .catch(() => {
-      // console.error(error);
     });
 }
 
@@ -164,7 +157,7 @@ function bootstrapTrack(trackId) {
     '%3A1%2C%22platform%22%3A%2220%22%7D%7D%2C%22comm%22%3A%7B%22uin%22%3A0%2C%22' +
     'format%22%3A%22json%22%2C%22ct%22%3A20%2C%22cv%22%3A0%7D%7D';
 
-  return fetch(targetUrl, {
+  return request(targetUrl, {
     method: 'GET',
     headers: {
       Referer: 'https://y.qq.com/',

@@ -55,9 +55,7 @@ export default class Client {
     const provider = getProviderByItemId(trackId);
 
     if (provider === undefined) {
-      return new Promise(() => {
-        return '';
-      });
+      return Promise.resolve('');
     }
 
     return provider.bootstrapTrack(trackId);
