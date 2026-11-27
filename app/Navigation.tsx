@@ -1,0 +1,130 @@
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import {
+  createNativeStackNavigator,
+  type NativeStackNavigationOptions,
+} from '@react-navigation/native-stack';
+
+import AboutScreen from './screens/AboutScreen';
+import PlaceholderScreen from './screens/PlaceholderScreen';
+import PlaylistsScreen from './screens/PlaylistsScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import { navigationTheme, usePalette } from './theme';
+
+export type PlaylistsStackParamList = { Playlists: undefined };
+export type SearchStackParamList = { Search: undefined };
+export type MineStackParamList = { Mine: undefined };
+export type SettingsStackParamList = { Settings: undefined; About: undefined };
+
+const Tab = createBottomTabNavigator();
+const PlaylistsStack = createNativeStackNavigator<PlaylistsStackParamList>();
+const SearchStack = createNativeStackNavigator<SearchStackParamList>();
+const MineStack = createNativeStackNavigator<MineStackParamList>();
+const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
+
+// Each tab keeps its own stack, so the tab bar stays in place while screens
+// are pushed inside a tab.
+function useStackOptions(): NativeStackNavigationOptions {
+  const palette = usePalette();
+
+  return {
+    headerTintColor: palette.accentColor,
+    headerTitleStyle: { color: palette.primaryColor },
+    statusBarStyle: palette.dark ? 'light' : 'dark',
+  };
+}
+
+function PlaylistsTab() {
+  return (
+    <PlaylistsStack.Navigator screenOptions={useStackOptions()}>
+      <PlaylistsStack.Screen
+        name="Playlists"
+        component={PlaylistsScreen}
+        options={{ title: '歌单' }}
+      />
+    </PlaylistsStack.Navigator>
+  );
+}
+
+function SearchTab() {
+  return (
+    <SearchStack.Navigator screenOptions={useStackOptions()}>
+      <SearchStack.Screen
+        name="Search"
+        component={PlaceholderScreen}
+        options={{ title: '搜索' }}
+      />
+    </SearchStack.Navigator>
+  );
+}
+
+function MineTab() {
+  return (
+    <MineStack.Navigator screenOptions={useStackOptions()}>
+      <MineStack.Screen
+        name="Mine"
+        component={PlaceholderScreen}
+        options={{ title: '我的' }}
+      />
+    </MineStack.Navigator>
+  );
+}
+
+function SettingsTab() {
+  return (
+    <SettingsStack.Navigator screenOptions={useStackOptions()}>
+      <SettingsStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: '设置' }}
+      />
+      <SettingsStack.Screen
+        name="About"
+        component={AboutScreen}
+        options={{ title: '关于' }}
+      />
+    </SettingsStack.Navigator>
+  );
+}
+
+export default function Navigation() {
+  const palette = usePalette();
+
+  return (
+    <NavigationContainer theme={navigationTheme(palette)}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: palette.accentColor,
+          tabBarInactiveTintColor: palette.secondaryColor,
+          // text-only tabs until the app has an icon set
+          tabBarIconStyle: { display: 'none' },
+          tabBarLabelPosition: 'beside-icon',
+          tabBarLabelStyle: { fontSize: 15, marginStart: 0 },
+        }}
+      >
+        <Tab.Screen
+          name="PlaylistsTab"
+          component={PlaylistsTab}
+          options={{ title: '歌单' }}
+        />
+        <Tab.Screen
+          name="SearchTab"
+          component={SearchTab}
+          options={{ title: '搜索' }}
+        />
+        <Tab.Screen
+          name="MineTab"
+          component={MineTab}
+          options={{ title: '我的' }}
+        />
+        <Tab.Screen
+          name="SettingsTab"
+          component={SettingsTab}
+          options={{ title: '设置' }}
+        />
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+}
