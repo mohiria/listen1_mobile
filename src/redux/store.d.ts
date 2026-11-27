@@ -23,7 +23,7 @@ export type MyPlaylistState = {
 export type RootState = {
   playerState: PlayerState;
   myPlaylistState: MyPlaylistState;
-  settingState: { language: string; theme: string };
+  settingState: { language: string; theme: 'system' | 'white' | 'black' };
   modalState: {
     // the full-screen player
     isOpen: boolean;

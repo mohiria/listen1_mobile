@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, type Theme } from '@react-navigation/native';
 
 import { store } from '../src/redux/store';
@@ -53,11 +54,14 @@ const black: Palette = {
 
 const themeName = () => store.getState().settingState.theme;
 
-// The theme is the one chosen in the settings, not the system appearance.
+// The theme is the one chosen in the settings; 'system' there means the
+// appearance of the device.
 export function usePalette(): Palette {
-  return useSyncExternalStore(store.subscribe, themeName) === 'black'
-    ? black
-    : white;
+  const chosen = useSyncExternalStore(store.subscribe, themeName);
+  const system = useColorScheme();
+  const dark = chosen === 'system' ? system === 'dark' : chosen === 'black';
+
+  return dark ? black : white;
 }
 
 export function navigationTheme(palette: Palette): Theme {

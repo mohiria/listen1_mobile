@@ -320,3 +320,57 @@ test('editing the favourites keeps the hearts in step', () => {
 
   assert.deepEqual(Object.keys(state.myPlaylistState.myFavoriteIds), [b.id]);
 });
+
+test('exporting leaves the state as it was', () => {
+  const state = after(
+    actions.createMyPlaylist({
+      info: { title: '通勤', cover_img_url: './assets/images/logo.png' },
+      tracks: [b],
+    })
+  );
+  const before = JSON.stringify(state.myPlaylistState);
+  const exported = StateJsonConvert.getJson(state);
+  const mine = state.myPlaylistState.playlists[1];
+
+  // the cover of a playlist made in the app, as other clients write it
+  assert.equal(exported[mine.id].info.cover_img_url, 'images/mycover.jpg');
+  assert.equal(JSON.stringify(state.myPlaylistState), before);
+});
+
+test('data that is not an export is refused', () => {
+  for (const data of [null, 1, 'text', [], {}, { playerlists: 'x' }]) {
+    assert.throws(() => StateJsonConvert.getState(data));
+  }
+  // names a playlist it does not hold
+  assert.throws(() =>
+    StateJsonConvert.getState({ playerlists: ['myplaylist_1'] })
+  );
+  assert.throws(() =>
+    StateJsonConvert.getState({
+      playerlists: ['myplaylist_1'],
+      myplaylist_1: { info: { title: 'no songs' } },
+    })
+  );
+});
+
+test('an export without a play queue restores my playlists', () => {
+  const restored = StateJsonConvert.getState({
+    playerlists: ['myplaylist_1'],
+    myplaylist_1: {
+      info: { id: 'myplaylist_1', title: '通勤', cover_img_url: 'images/mycover.jpg' },
+      tracks: [a],
+    },
+  });
+  const state = reducer(after(), actions.recoverData(restored));
+
+  assert.deepEqual(queue(state), []);
+  assert.deepEqual(
+    state.myPlaylistState.playlists.map((info) => info.title),
+    ['我喜欢的音乐', '通勤']
+  );
+});
+
+test('a new install follows the system appearance until a theme is chosen', () => {
+  assert.equal(after().settingState.theme, 'system');
+  assert.equal(after(actions.changeTheme('black')).settingState.theme, 'black');
+});

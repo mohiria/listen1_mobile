@@ -32,8 +32,10 @@ const modalReducer = (
   }
 };
 
+// theme: 'system' follows the appearance of the device, 'white' and 'black'
+// are fixed
 const settingReducer = (
-  state = { language: 'zh_CN', theme: 'white' },
+  state = { language: 'zh_CN', theme: 'system' },
   action
 ) => {
   switch (action.type) {

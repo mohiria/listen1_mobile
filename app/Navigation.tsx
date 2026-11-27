@@ -12,12 +12,14 @@ import {
 import type { PlaylistInfo } from '../src/api/client';
 import MiniPlayer from './components/MiniPlayer';
 import AboutScreen from './screens/AboutScreen';
+import BackupScreen from './screens/BackupScreen';
 import CreatePlaylistScreen from './screens/CreatePlaylistScreen';
 import ImportPlaylistScreen from './screens/ImportPlaylistScreen';
 import MineScreen from './screens/MineScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
 import ReorderScreen from './screens/ReorderScreen';
+import RestoreScreen from './screens/RestoreScreen';
 import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { navigationTheme, usePalette } from './theme';
@@ -38,7 +40,12 @@ export type MineStackParamList = {
   // the playlist of mine whose songs are edited; without it, my playlists
   Reorder: { playlistId?: string };
 };
-export type SettingsStackParamList = { Settings: undefined; About: undefined };
+export type SettingsStackParamList = {
+  Settings: undefined;
+  Backup: undefined;
+  Restore: undefined;
+  About: undefined;
+};
 
 const Tab = createBottomTabNavigator();
 const PlaylistsStack = createNativeStackNavigator<PlaylistsStackParamList>();
@@ -131,6 +138,16 @@ function SettingsTab() {
         name="Settings"
         component={SettingsScreen}
         options={{ title: '设置' }}
+      />
+      <SettingsStack.Screen
+        name="Backup"
+        component={BackupScreen}
+        options={{ title: '备份' }}
+      />
+      <SettingsStack.Screen
+        name="Restore"
+        component={RestoreScreen}
+        options={{ title: '恢复' }}
       />
       <SettingsStack.Screen
         name="About"

@@ -1,7 +1,9 @@
 import type { PlaylistInfo, Track } from '../api/client';
 
 export function changePlayMode(): { type: string };
-export function changeTheme(theme: 'white' | 'black'): { type: string };
+export function changeTheme(theme: 'system' | 'white' | 'black'): {
+  type: string;
+};
 export function playTrack(track: Track): { type: string };
 export function playTracks(tracks: Track[]): { type: string };
 export function playTrackInPlaylist(payload: {
@@ -51,3 +53,9 @@ export function addToMyPlaylist(payload: {
 }): { type: string };
 export function addToMyFavorite(track: Track): { type: string };
 export function removeFromMyFavorite(track: Track): { type: string };
+// Replaces the play queue and my playlists with those of exported data, as
+// StateJsonConvert.getState gives them.
+export function recoverData(payload: {
+  playerState: object;
+  myPlaylistState: object;
+}): { type: string };
