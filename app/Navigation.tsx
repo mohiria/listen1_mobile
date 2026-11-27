@@ -6,13 +6,19 @@ import {
   type NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 
+import type { PlaylistInfo } from '../src/api/client';
 import AboutScreen from './screens/AboutScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
+import PlaylistScreen from './screens/PlaylistScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
+import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { navigationTheme, usePalette } from './theme';
 
-export type PlaylistsStackParamList = { Playlists: undefined };
+export type PlaylistsStackParamList = {
+  Playlists: undefined;
+  Playlist: { info: PlaylistInfo };
+};
 export type SearchStackParamList = { Search: undefined };
 export type MineStackParamList = { Mine: undefined };
 export type SettingsStackParamList = { Settings: undefined; About: undefined };
@@ -43,6 +49,11 @@ function PlaylistsTab() {
         component={PlaylistsScreen}
         options={{ title: '歌单' }}
       />
+      <PlaylistsStack.Screen
+        name="Playlist"
+        component={PlaylistScreen}
+        options={{ title: '' }}
+      />
     </PlaylistsStack.Navigator>
   );
 }
@@ -52,7 +63,7 @@ function SearchTab() {
     <SearchStack.Navigator screenOptions={useStackOptions()}>
       <SearchStack.Screen
         name="Search"
-        component={PlaceholderScreen}
+        component={SearchScreen}
         options={{ title: '搜索' }}
       />
     </SearchStack.Navigator>

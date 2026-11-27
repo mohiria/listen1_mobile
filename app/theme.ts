@@ -12,6 +12,8 @@ export type Palette = {
   primaryColor: string;
   secondaryColor: string;
   thirdColor: string;
+  // the provider names that are not selected
+  inactiveColor: string;
   disableColor: string;
   borderColor: string;
   playingColor: string;
@@ -28,6 +30,7 @@ const white: Palette = {
   primaryColor: '#000000',
   secondaryColor: '#666666',
   thirdColor: '#afafaf',
+  inactiveColor: '#393939',
   disableColor: '#cfcfcf',
   borderColor: '#eaeaea',
   playingColor,
@@ -41,6 +44,7 @@ const black: Palette = {
   primaryColor: '#7E7E7E',
   secondaryColor: '#5a5a5a',
   thirdColor: '#555555',
+  inactiveColor: '#393939',
   disableColor: '#202020',
   borderColor: '#2b2b2b',
   playingColor,
