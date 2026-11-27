@@ -1,5 +1,13 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Client from '../../src/api/client';
 import { usePalette } from '../theme';
@@ -62,7 +70,7 @@ export function ProviderPages({
   selected: string;
   render: (platformId: string, active: boolean) => React.ReactNode;
 }) {
-  const [visited, setVisited] = React.useState([selected]);
+  const [visited, setVisited] = useState([selected]);
 
   if (!visited.includes(selected)) {
     setVisited([...visited, selected]);
@@ -79,6 +87,58 @@ export function ProviderPages({
         </View>
       ))}
     </>
+  );
+}
+
+// One page per provider, side by side: swiping left or right changes the
+// provider, and so does selecting it by name. A page is filled in the first
+// time it is shown and kept afterwards.
+export function ProviderPager({
+  selected,
+  onSelect,
+  render,
+}: {
+  selected: string;
+  onSelect: (platformId: string) => void;
+  render: (platformId: string) => React.ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  const pageWidth = useWindowDimensions().width - insets.left - insets.right;
+  const scroll = useRef<ScrollView>(null);
+  const [visited, setVisited] = useState([selected]);
+  const index = providers.findIndex(
+    provider => provider.platformId === selected
+  );
+
+  if (!visited.includes(selected)) {
+    setVisited([...visited, selected]);
+  }
+
+  useEffect(() => {
+    scroll.current?.scrollTo({ x: index * pageWidth, animated: true });
+  }, [index, pageWidth]);
+
+  return (
+    <ScrollView
+      ref={scroll}
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+      onMomentumScrollEnd={event => {
+        const shown =
+          providers[Math.round(event.nativeEvent.contentOffset.x / pageWidth)];
+
+        if (shown !== undefined && shown.platformId !== selected) {
+          onSelect(shown.platformId);
+        }
+      }}
+    >
+      {providers.map(({ platformId }) => (
+        <View key={platformId} style={{ width: pageWidth }}>
+          {visited.includes(platformId) ? render(platformId) : null}
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 

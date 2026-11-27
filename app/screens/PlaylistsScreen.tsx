@@ -14,7 +14,7 @@ import Client, { type PlaylistInfo } from '../../src/api/client';
 import ListStatus from '../components/ListStatus';
 import ProviderTabs, {
   firstProviderId,
-  ProviderPages,
+  ProviderPager,
 } from '../components/ProviderTabs';
 import type { PlaylistsStackParamList } from '../Navigation';
 import { usePalette } from '../theme';
@@ -152,8 +152,9 @@ export default function PlaylistsScreen({
   return (
     <Screen>
       <ProviderTabs selected={selected} onSelect={setSelected} />
-      <ProviderPages
+      <ProviderPager
         selected={selected}
+        onSelect={setSelected}
         render={platformId => (
           <PlaylistGrid platformId={platformId} onOpen={open} />
         )}
