@@ -183,22 +183,148 @@ function PlayerContent() {
       state.myPlaylistState.myFavoriteIds[track.id] !== undefined
   );
   const color = palette.primaryColor;
-  const coverSize = Math.min(
-    300,
-    screen.width - insets.left - insets.right - 60
-  );
+  // in landscape the cover takes one side, and the rest the other
+  const wide = screen.width > screen.height;
+  const coverSize = wide
+    ? Math.min(
+        300,
+        screen.height - insets.top - insets.bottom - 40,
+        (screen.width - insets.left - insets.right) / 2 - 40
+      )
+    : Math.min(300, screen.width - insets.left - insets.right - 60);
   const coverStyle = {
     backgroundColor: palette.backgroundColor,
     height: coverSize,
     width: coverSize,
   };
 
+  const nav = (
+    <View style={styles.nav}>
+      <IconButton
+        name="keyboard-arrow-down"
+        size={30}
+        box={50}
+        color={color}
+        onPress={() => store.dispatch(toggleModal())}
+      />
+      {track !== null && track !== undefined ? (
+        <IconButton
+          name="more-horiz"
+          size={30}
+          box={50}
+          color={color}
+          onPress={() =>
+            store.dispatch(openModalLite({ type: 'track', item: track }))
+          }
+        />
+      ) : null}
+    </View>
+  );
+  const cover =
+    hasTrack && track.img_url ? (
+      <Image
+        source={{ uri: track.img_url }}
+        style={[styles.cover, coverStyle]}
+      />
+    ) : (
+      <View style={[styles.cover, styles.center, coverStyle]}>
+        <MaterialIcons
+          name="music-note"
+          size={80}
+          color={palette.thirdColor}
+        />
+      </View>
+    );
+  const info = (
+    <View style={styles.info}>
+      <View style={styles.infoText}>
+        <Text numberOfLines={1} style={[styles.title, { color }]}>
+          {hasTrack ? track.title : 'Listen 1'}
+        </Text>
+        {hasTrack ? (
+          <Text
+            numberOfLines={1}
+            style={[styles.artist, { color: palette.secondaryColor }]}
+          >
+            {source !== ''
+              ? `${track.artist} · 来自${Client.getProviderName(source)}`
+              : track.artist}
+          </Text>
+        ) : null}
+      </View>
+      {track !== null && track !== undefined ? (
+        <IconButton
+          name={favourite ? 'favorite' : 'favorite-border'}
+          size={30}
+          box={50}
+          color={favourite ? palette.accentColor : palette.secondaryColor}
+          onPress={() =>
+            store.dispatch(
+              favourite ? removeFromMyFavorite(track) : addToMyFavorite(track)
+            )
+          }
+        />
+      ) : null}
+    </View>
+  );
+  const controls = (
+    <View style={styles.controls}>
+      <IconButton
+        name={MODE_ICONS[playMode] ?? 'repeat'}
+        size={30}
+        box={70}
+        color={color}
+        onPress={() => store.dispatch(changePlayMode())}
+      />
+      <IconButton
+        name="skip-previous"
+        size={40}
+        box={70}
+        color={color}
+        onPress={() => {
+          if (hasTrack) {
+            store.dispatch(prevTrack());
+          }
+        }}
+      />
+      <IconButton
+        name={playing ? 'pause-circle-outline' : 'play-circle-outline'}
+        size={70}
+        box={80}
+        color={color}
+        onPress={() => {
+          if (hasTrack) {
+            store.dispatch(togglePlay());
+          }
+        }}
+      />
+      <IconButton
+        name="skip-next"
+        size={40}
+        box={70}
+        color={color}
+        onPress={() => {
+          if (hasTrack) {
+            store.dispatch(nextTrack());
+          }
+        }}
+      />
+      <IconButton
+        name="queue-music"
+        size={30}
+        box={70}
+        color={color}
+        onPress={() => store.dispatch(openModalLite({ type: 'nowplaying' }))}
+      />
+    </View>
+  );
+
   return (
     <ScrollView
       alwaysBounceVertical={false}
       style={{ backgroundColor: palette.windowColor }}
       contentContainerStyle={[
-        styles.content,
+        wide ? styles.contentWide : styles.content,
         {
           paddingBottom: insets.bottom,
           paddingLeft: insets.left,
@@ -207,124 +333,25 @@ function PlayerContent() {
         },
       ]}
     >
-      <View style={styles.nav}>
-        <IconButton
-          name="keyboard-arrow-down"
-          size={30}
-          box={50}
-          color={color}
-          onPress={() => store.dispatch(toggleModal())}
-        />
-        {track !== null && track !== undefined ? (
-          <IconButton
-            name="more-horiz"
-            size={30}
-            box={50}
-            color={color}
-            onPress={() =>
-              store.dispatch(openModalLite({ type: 'track', item: track }))
-            }
-          />
-        ) : null}
-      </View>
-
-      {hasTrack && track.img_url ? (
-        <Image
-          source={{ uri: track.img_url }}
-          style={[styles.cover, coverStyle]}
-        />
+      {wide ? (
+        <>
+          <View style={[styles.side, styles.center]}>{cover}</View>
+          <View style={styles.side}>
+            {nav}
+            {info}
+            <ProgressRow palette={palette} />
+            {controls}
+          </View>
+        </>
       ) : (
-        <View style={[styles.cover, styles.center, coverStyle]}>
-          <MaterialIcons
-            name="music-note"
-            size={80}
-            color={palette.thirdColor}
-          />
-        </View>
+        <>
+          {nav}
+          {cover}
+          {info}
+          <ProgressRow palette={palette} />
+          {controls}
+        </>
       )}
-
-      <View style={styles.info}>
-        <View style={styles.infoText}>
-          <Text numberOfLines={1} style={[styles.title, { color }]}>
-            {hasTrack ? track.title : 'Listen 1'}
-          </Text>
-          {hasTrack ? (
-            <Text
-              numberOfLines={1}
-              style={[styles.artist, { color: palette.secondaryColor }]}
-            >
-              {source !== ''
-                ? `${track.artist} · 来自${Client.getProviderName(source)}`
-                : track.artist}
-            </Text>
-          ) : null}
-        </View>
-        {track !== null && track !== undefined ? (
-          <IconButton
-            name={favourite ? 'favorite' : 'favorite-border'}
-            size={30}
-            box={50}
-            color={favourite ? palette.accentColor : palette.secondaryColor}
-            onPress={() =>
-              store.dispatch(
-                favourite ? removeFromMyFavorite(track) : addToMyFavorite(track)
-              )
-            }
-          />
-        ) : null}
-      </View>
-
-      <ProgressRow palette={palette} />
-
-      <View style={styles.controls}>
-        <IconButton
-          name={MODE_ICONS[playMode] ?? 'repeat'}
-          size={30}
-          box={70}
-          color={color}
-          onPress={() => store.dispatch(changePlayMode())}
-        />
-        <IconButton
-          name="skip-previous"
-          size={40}
-          box={70}
-          color={color}
-          onPress={() => {
-            if (hasTrack) {
-              store.dispatch(prevTrack());
-            }
-          }}
-        />
-        <IconButton
-          name={playing ? 'pause-circle-outline' : 'play-circle-outline'}
-          size={70}
-          box={80}
-          color={color}
-          onPress={() => {
-            if (hasTrack) {
-              store.dispatch(togglePlay());
-            }
-          }}
-        />
-        <IconButton
-          name="skip-next"
-          size={40}
-          box={70}
-          color={color}
-          onPress={() => {
-            if (hasTrack) {
-              store.dispatch(nextTrack());
-            }
-          }}
-        />
-        <IconButton
-          name="queue-music"
-          size={30}
-          box={70}
-          color={color}
-          onPress={() => store.dispatch(openModalLite({ type: 'nowplaying' }))}
-        />
-      </View>
     </ScrollView>
   );
 }
@@ -362,6 +389,8 @@ export default function PlayerPage() {
 
 const styles = StyleSheet.create({
   content: { alignItems: 'center', flexGrow: 1 },
+  contentWide: { flexDirection: 'row', flexGrow: 1 },
+  side: { alignItems: 'center', flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   nav: {
     alignSelf: 'stretch',
