@@ -69,35 +69,6 @@ export default function ProviderTabs({
   );
 }
 
-// Keeps one child per provider alive once it has been shown, so that going
-// back to a provider does not load its list again.
-export function ProviderPages({
-  selected,
-  render,
-}: {
-  selected: string;
-  render: (platformId: string, active: boolean) => React.ReactNode;
-}) {
-  const [visited, setVisited] = useState([selected]);
-
-  if (!visited.includes(selected)) {
-    setVisited([...visited, selected]);
-  }
-
-  return (
-    <>
-      {visited.map(platformId => (
-        <View
-          key={platformId}
-          style={platformId === selected ? styles.page : styles.hidden}
-        >
-          {render(platformId, platformId === selected)}
-        </View>
-      ))}
-    </>
-  );
-}
-
 // One page per provider, side by side: swiping left or right changes the
 // provider, and so does selecting it by name. A page is filled in the first
 // time it is shown and kept afterwards.
@@ -105,18 +76,20 @@ export function ProviderPager({
   selected,
   onSelect,
   render,
+  all = false,
 }: {
   selected: string;
   onSelect: (platformId: string) => void;
   render: (platformId: string) => React.ReactNode;
+  // puts the page of 全部 in front, as in the row of names
+  all?: boolean;
 }) {
+  const pages = all ? withAll : providers;
   const insets = useSafeAreaInsets();
   const pageWidth = useWindowDimensions().width - insets.left - insets.right;
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [visited, setVisited] = useState([selected]);
-  const index = providers.findIndex(
-    provider => provider.platformId === selected
-  );
+  const index = pages.findIndex(page => page.platformId === selected);
 
   if (!visited.includes(selected)) {
     setVisited([...visited, selected]);
@@ -132,16 +105,17 @@ export function ProviderPager({
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       onMomentumScrollEnd={event => {
         const shown =
-          providers[Math.round(event.nativeEvent.contentOffset.x / pageWidth)];
+          pages[Math.round(event.nativeEvent.contentOffset.x / pageWidth)];
 
         if (shown !== undefined && shown.platformId !== selected) {
           onSelect(shown.platformId);
         }
       }}
     >
-      {providers.map(({ platformId }) => (
+      {pages.map(({ platformId }) => (
         <View key={platformId} style={{ width: pageWidth }}>
           {visited.includes(platformId) ? render(platformId) : null}
         </View>
@@ -155,6 +129,4 @@ const styles = StyleSheet.create({
   tab: { alignItems: 'center', flex: 1, paddingTop: 12 },
   label: { fontSize: 15 },
   underline: { alignSelf: 'stretch', height: 3, marginTop: 9 },
-  page: { flex: 1 },
-  hidden: { display: 'none' },
 });

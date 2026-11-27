@@ -10,7 +10,7 @@ import { store } from '../../src/redux/store';
 import ListStatus from '../components/ListStatus';
 import ProviderTabs, {
   ALL_PROVIDERS,
-  ProviderPages,
+  ProviderPager,
 } from '../components/ProviderTabs';
 import TrackRow from '../components/TrackRow';
 import { usePalette } from '../theme';
@@ -292,16 +292,18 @@ export default function SearchScreen() {
         />
       </View>
       <ProviderTabs selected={selected} onSelect={setSelected} all />
-      <ProviderPages
+      <ProviderPager
+        all
         selected={selected}
-        render={(platformId, active) =>
+        onSelect={setSelected}
+        render={platformId =>
           platformId === ALL_PROVIDERS ? (
-            <AllResults keyword={keyword} active={active} />
+            <AllResults keyword={keyword} active={selected === platformId} />
           ) : (
             <SearchResults
               platformId={platformId}
               keyword={keyword}
-              active={active}
+              active={selected === platformId}
             />
           )
         }
