@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import request from '../../src/api/request.js';
+import request, { requestBytes } from '../../src/api/request.js';
 
 function stubFetch(t, impl) {
   const realFetch = globalThis.fetch;
@@ -62,4 +62,42 @@ test('a network failure reaches the caller', async (t) => {
     name: 'TypeError',
     message: 'Network request failed',
   });
+});
+
+test('in the app the bytes of an answer are asked for as bytes', async (t) => {
+  const sent = [];
+
+  class FakeXhr {
+    constructor() {
+      this.headers = {};
+    }
+
+    open(method, url) {
+      this.method = method;
+      this.url = url;
+    }
+
+    setRequestHeader(name, value) {
+      this.headers[name] = value;
+    }
+
+    send() {
+      sent.push(this);
+      this.response = Uint8Array.from([0x61, 0xe5, 0xbe]).buffer;
+      this.onload();
+    }
+  }
+
+  globalThis.XMLHttpRequest = FakeXhr;
+  t.after(() => {
+    delete globalThis.XMLHttpRequest;
+  });
+
+  const bytes = await requestBytes('http://example.invalid/', { Referer: 'r' });
+
+  assert.deepEqual([...bytes], [0x61, 0xe5, 0xbe]);
+  assert.equal(sent[0].method, 'GET');
+  assert.equal(sent[0].responseType, 'arraybuffer');
+  assert.equal(sent[0].timeout, 10000);
+  assert.deepEqual(sent[0].headers, { Referer: 'r' });
 });

@@ -1,4 +1,5 @@
-import request from '../request';
+import request, { requestBytes } from '../request';
+import { decodeUtf8 } from '../utf8';
 import { isExcerpt } from '../excerpt';
 
 const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -128,12 +129,10 @@ function searchPlaylist(keyword, page) {
     '&outCharset=utf-8&platform=yqq.json&needNewCode=0&num_per_page=20' +
     `&page_no=${page - 1}&query=${encodeURIComponent(keyword)}`;
 
-  return request(url, {
-    headers: {
-      Referer: 'https://y.qq.com/',
-    },
-  })
-    .then(response => response.json())
+  // The introductions in the answer are cut in the middle of a character,
+  // which leaves bytes that are not UTF-8.
+  return requestBytes(url, { Referer: 'https://y.qq.com/' })
+    .then(bytes => JSON.parse(decodeUtf8(bytes)))
     .then(r => {
       if (r.code !== 0) {
         throw new Error(`QQ playlist search: code ${r.code}`);

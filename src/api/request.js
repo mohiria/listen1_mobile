@@ -20,3 +20,31 @@ export default function request(url, init) {
     );
   });
 }
+
+// The bytes of what a GET answers, for an answer whose text is not well
+// formed: the device decodes such a text to nothing, so the text is not asked
+// for. Fails after the same deadline.
+export function requestBytes(url, headers = {}) {
+  // outside the app there is only fetch, which can give the bytes itself
+  if (typeof XMLHttpRequest === 'undefined') {
+    return request(url, { headers })
+      .then((response) => response.arrayBuffer())
+      .then((buffer) => new Uint8Array(buffer));
+  }
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('GET', url);
+    xhr.responseType = 'arraybuffer';
+    xhr.timeout = TIMEOUT_MS;
+    Object.keys(headers).forEach((name) => {
+      xhr.setRequestHeader(name, headers[name]);
+    });
+    xhr.onload = () => resolve(new Uint8Array(xhr.response));
+    xhr.onerror = () => reject(new Error(`请求失败：${url}`));
+    xhr.ontimeout = () =>
+      reject(new Error(`请求超时（${TIMEOUT_MS / 1000} 秒）：${url}`));
+    xhr.send();
+  });
+}
