@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   createAggregateSearch,
   mergeSongs,
+  takeInTurn,
 } from '../../src/api/aggregate.js';
 
 const song = (id, title, artist, disabled = false) => ({
@@ -260,4 +261,32 @@ test('pages that bring nothing new are passed over in the same call', async () =
 
   assert.deepEqual(ids(found.tracks), ['ne1', 'ne3']);
   assert.equal(netease.calls.length, 3);
+});
+
+test('taking in turn keeps every item, alike or not', () => {
+  const taken = takeInTurn([
+    [song('ne1', '周杰伦', ''), song('ne2', '周杰伦', '')],
+    [],
+    [song('kw1', '周杰伦', '')],
+  ]);
+
+  assert.deepEqual(ids(taken), ['ne1', 'kw1', 'ne2']);
+});
+
+test('a search can merge its pages by taking in turn', async () => {
+  const netease = provider('netease', [[song('ne1', '周杰伦精选', '')]], 1);
+  const qq = provider('qq', [
+    [song('qq1', '周杰伦精选', ''), song('qq2', '周杰伦全集', '')],
+    [],
+  ]);
+  const search = createAggregateSearch([netease, qq], '周杰伦', takeInTurn);
+  const first = await search.more();
+
+  assert.deepEqual(ids(first.tracks), ['ne1', 'qq1', 'qq2']);
+  assert.equal(first.done, false);
+
+  const second = await search.more();
+
+  assert.deepEqual(ids(second.tracks), ['ne1', 'qq1', 'qq2']);
+  assert.equal(second.done, true);
 });

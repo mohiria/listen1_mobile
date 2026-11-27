@@ -231,6 +231,30 @@ async function search(keyword, curpage) {
     });
 }
 
+// The playlists whose names match the keyword: the search of songs with
+// another ft. Its pages count from 0.
+async function searchPlaylist(keyword, curpage) {
+  const target_url = `http://search.kuwo.cn/r.s?client=kt&all=${encodeURIComponent(
+    keyword
+  )}&pn=${
+    curpage - 1
+  }&rn=20&vipver=1&ft=playlist&encoding=utf8&rformat=json&mobi=1`;
+
+  return request(target_url)
+    .then((response) => response.json())
+    .then((data) => ({
+      result: data.abslist.map((item) => ({
+        cover_img_url: item.pic,
+        title: html_decode(item.name),
+        id: `kwplaylist_${item.playlistid}`,
+        source_url: `http://www.kuwo.cn/playlist/index?pid=${item.playlistid}`,
+        author: html_decode(item.nickname || ''),
+        count: Number(item.songnum),
+      })),
+      total: Number(data.TOTAL),
+    }));
+}
+
 function parseUrl(url) {
   let result = null;
 
@@ -268,5 +292,6 @@ export default {
   getPlaylist,
   bootstrapTrack,
   search,
+  searchPlaylist,
   parseUrl,
 };

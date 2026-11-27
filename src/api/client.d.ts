@@ -24,6 +24,17 @@ export type AggregateSearch = {
 
 export type PlaylistInfo ={ id: string; title: string; cover_img_url: string };
 
+// A playlist as a search finds it.
+export type FoundPlaylist = PlaylistInfo & { author: string; count: number };
+
+export type PlaylistSearch = {
+  more(): Promise<{
+    playlists: FoundPlaylist[];
+    failed: string[];
+    done: boolean;
+  }>;
+};
+
 export default class Client {
   static getPlatformArray(): Provider[];
   static getProviderName(enName: string): string;
@@ -37,6 +48,7 @@ export default class Client {
     platformId: string
   ): Promise<{ result: Track[]; total: number }>;
   static searchAll(keyword: string): AggregateSearch;
+  static searchPlaylists(keyword: string, platformId?: string): PlaylistSearch;
   static getPlaylist(
     playlistId: string
   ): Promise<{ info: PlaylistInfo; tracks: Track[] }>;

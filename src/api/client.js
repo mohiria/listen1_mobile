@@ -3,7 +3,7 @@ import netease from './provider/netease';
 import kugou from './provider/kugou';
 import kuwo from './provider/kuwo';
 import { createResolver } from './resolve';
-import { createAggregateSearch } from './aggregate';
+import { createAggregateSearch, takeInTurn } from './aggregate';
 // import bilibili from './provider/bilibili';
 // import migu from './provider/migu';
 
@@ -69,6 +69,30 @@ export default class Client {
       })),
       keyword
     );
+  }
+
+  // The playlists the keyword finds, in one provider or, without platformId,
+  // in all of them in turn. more() works as in searchAll.
+  static searchPlaylists(keyword, platformId) {
+    const providers =
+      platformId === undefined
+        ? preferredProvider
+        : [getProviderByItemId(platformId)];
+    const session = createAggregateSearch(
+      providers.map((provider) => ({
+        name: provider.meta.enName,
+        search: (text, page) => provider.searchPlaylist(text, page),
+      })),
+      keyword,
+      takeInTurn
+    );
+
+    return {
+      more: () =>
+        session
+          .more()
+          .then(({ tracks, failed, done }) => ({ playlists: tracks, failed, done })),
+    };
   }
 
   static getPlaylist(playlistId) {

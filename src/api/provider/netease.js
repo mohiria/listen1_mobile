@@ -161,6 +161,33 @@ function search(keyword, page) {
   });
 }
 
+// The playlists whose names match the keyword: the search of songs with
+// another type.
+function searchPlaylist(keyword, page) {
+  const url = 'https://music.163.com/weapi/cloudsearch/pc';
+  const data = {
+    csrf_token: '',
+    limit: '20',
+    offset: (20 * (page - 1)).toString(),
+    s: keyword,
+    total: 'false',
+    type: '1000',
+  };
+
+  return requestAPI(url, data).then((resData) => ({
+    // a search without matches has no playlists field
+    result: (resData.result.playlists || []).map((item) => ({
+      cover_img_url: getSmallImageUrl(item.coverImgUrl),
+      title: item.name,
+      id: `neplaylist_${item.id}`,
+      source_url: `http://music.163.com/#/playlist?id=${item.id}`,
+      author: item.creator ? item.creator.nickname : '',
+      count: item.trackCount,
+    })),
+    total: resData.result.playlistCount || 0,
+  }));
+}
+
 function parseUrl(url) {
   let result = null;
 
@@ -198,5 +225,6 @@ export default {
   getPlaylist,
   bootstrapTrack,
   search,
+  searchPlaylist,
   parseUrl,
 };

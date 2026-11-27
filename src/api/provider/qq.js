@@ -1,8 +1,18 @@
 import request from '../request';
 import { isExcerpt } from '../excerpt';
 
+const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+// The names come with characters written as HTML entities, as in
+// 周杰伦&#38;陶喆.
 function htmlDecode(s) {
-  return s;
+  if (typeof s !== 'string') {
+    return s;
+  }
+
+  return s
+    .replace(/&#(\d+);/g, (whole, code) => String.fromCodePoint(Number(code)))
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (whole, name) => HTML_ENTITIES[name]);
 }
 
 function qqGetImageUrl(qqimgid, imgType) {
@@ -106,6 +116,44 @@ function search(keyword, page) {
         .map(item => qqConvertSong(item));
 
       return { result: tracks, total: jsonData.data.song.totalnum };
+    });
+}
+
+// The playlists whose names match the keyword.
+function searchPlaylist(keyword, page) {
+  // its pages count from 0
+  const url =
+    'https://c.y.qq.com/soso/fcgi-bin/client_music_search_songlist?' +
+    'remoteplace=txt.yqq.playlist&format=json&inCharset=utf8' +
+    '&outCharset=utf-8&platform=yqq.json&needNewCode=0&num_per_page=20' +
+    `&page_no=${page - 1}&query=${encodeURIComponent(keyword)}`;
+
+  return request(url, {
+    headers: {
+      Referer: 'https://y.qq.com/',
+    },
+  })
+    .then(response => response.json())
+    .then(r => {
+      if (r.code !== 0) {
+        throw new Error(`QQ playlist search: code ${r.code}`);
+      }
+      // A page can hold fewer than asked for, and sum counts far more than
+      // can be fetched: past the last page there is no data at all.
+      const list = (r.data && r.data.list) || [];
+
+      return {
+        result: list.map(item => ({
+          cover_img_url: item.imgurl,
+          title: htmlDecode(item.dissname),
+          // docid is not the id the playlist is opened with
+          id: `qqplaylist_${item.dissid}`,
+          source_url: `http://y.qq.com/#type=taoge&id=${item.dissid}`,
+          author: item.creator ? htmlDecode(item.creator.name) : '',
+          count: item.song_count,
+        })),
+        total: list.length === 0 ? 0 : r.data.sum,
+      };
     });
 }
 
@@ -225,5 +273,6 @@ export default {
   parseUrl,
   bootstrapTrack,
   search,
+  searchPlaylist,
   // lyric: qq_lyric,
 };

@@ -26,7 +26,10 @@ export type PlaylistsStackParamList = {
   Playlists: undefined;
   Playlist: { info: PlaylistInfo };
 };
-export type SearchStackParamList = { Search: undefined };
+export type SearchStackParamList = {
+  Search: undefined;
+  Playlist: { info: PlaylistInfo };
+};
 export type MineStackParamList = {
   Mine: undefined;
   Playlist: { info: PlaylistInfo };
@@ -79,6 +82,11 @@ function SearchTab() {
         name="Search"
         component={SearchScreen}
         options={{ title: '搜索' }}
+      />
+      <SearchStack.Screen
+        name="Playlist"
+        component={PlaylistScreen}
+        options={{ title: '' }}
       />
     </SearchStack.Navigator>
   );

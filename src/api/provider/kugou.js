@@ -342,6 +342,27 @@ async function search(keyword, curpage) {
     });
 }
 
+// The playlists whose names match the keyword. The total stops at 480.
+async function searchPlaylist(keyword, curpage) {
+  const target_url = `http://mobilecdnbj.kugou.com/api/v3/search/special?keyword=${encodeURIComponent(
+    keyword,
+  )}&pagesize=20&filter=0&page=${curpage}`;
+
+  return request(target_url)
+    .then((response) => response.json())
+    .then(({data}) => ({
+      result: data.info.map((item) => ({
+        cover_img_url: item.imgurl ? item.imgurl.replace('{size}', '400') : '',
+        title: item.specialname,
+        id: `kgplaylist_${item.specialid}`,
+        source_url: `http://www.kugou.com/yy/special/single/${item.specialid}.html`,
+        author: item.nickname || '',
+        count: item.songcount,
+      })),
+      total: data.total,
+    }));
+}
+
 function kg_convert_song(song) {
   const track = {
     id: `kgtrack_${song.FileHash}`,
@@ -405,5 +426,6 @@ export default {
   getPlaylist,
   bootstrapTrack,
   search,
+  searchPlaylist,
   parseUrl,
 };

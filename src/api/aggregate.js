@@ -45,6 +45,23 @@ export function mergeSongs(lists, shown = []) {
   return added;
 }
 
+// Takes from each list in turn. For what has no copies in other providers,
+// such as playlists.
+export function takeInTurn(lists) {
+  const added = [];
+  const longest = Math.max(0, ...lists.map((list) => list.length));
+
+  for (let i = 0; i < longest; i += 1) {
+    lists.forEach((list) => {
+      if (list[i] !== undefined) {
+        added.push(list[i]);
+      }
+    });
+  }
+
+  return added;
+}
+
 // providers: [{ name, search(keyword, page) }], in the order they are
 // preferred. search resolves with { result, total }.
 //
@@ -54,8 +71,9 @@ export function mergeSongs(lists, shown = []) {
 //                             answer this time; they are asked for the same
 //                             page by the next call
 //                             done: no provider has more
-// It never rejects.
-export function createAggregateSearch(providers, keyword) {
+// It never rejects. merge(lists, shown) puts the pages of the providers into
+// one list; tracks holds whatever was searched for.
+export function createAggregateSearch(providers, keyword, merge = mergeSongs) {
   const states = providers.map((provider) => ({
     provider,
     page: 1,
@@ -97,7 +115,7 @@ export function createAggregateSearch(providers, keyword) {
         const failed = states
           .filter((state, i) => lists[i] === null)
           .map((state) => state.provider.name);
-        const added = mergeSongs(
+        const added = merge(
           lists.map((list) => list || []),
           tracks
         );
