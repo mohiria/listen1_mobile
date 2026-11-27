@@ -104,7 +104,7 @@ export function ProviderPager({
 }) {
   const insets = useSafeAreaInsets();
   const pageWidth = useWindowDimensions().width - insets.left - insets.right;
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [visited, setVisited] = useState([selected]);
   const index = providers.findIndex(
     provider => provider.platformId === selected
