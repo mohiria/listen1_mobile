@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { changeTheme } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import Sheet from '../components/Sheet';
-import type { SettingsStackParamList } from '../Navigation';
+import type { MineStackParamList } from '../Navigation';
 import { usePalette, type Palette } from '../theme';
 import { useStore } from '../useStore';
 import Screen from './Screen';
@@ -44,7 +44,7 @@ function Row({
 
 export default function SettingsScreen({
   navigation,
-}: NativeStackScreenProps<SettingsStackParamList, 'Settings'>) {
+}: NativeStackScreenProps<MineStackParamList, 'Settings'>) {
   const palette = usePalette();
   const theme = useStore(state => state.settingState.theme);
   // the sheet with the three themes; touching outside it closes it

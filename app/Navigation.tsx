@@ -1,8 +1,10 @@
 import React from 'react';
+import { Pressable } from 'react-native';
 import {
   BottomTabBar,
   createBottomTabNavigator,
 } from '@react-navigation/bottom-tabs';
+import { MaterialIcons } from '@react-native-vector-icons/material-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -39,8 +41,6 @@ export type MineStackParamList = {
   ImportPlaylist: undefined;
   // the playlist of mine whose songs are edited; without it, my playlists
   Reorder: { playlistId?: string };
-};
-export type SettingsStackParamList = {
   Settings: undefined;
   Backup: undefined;
   Restore: undefined;
@@ -51,7 +51,6 @@ const Tab = createBottomTabNavigator();
 const PlaylistsStack = createNativeStackNavigator<PlaylistsStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
 const MineStack = createNativeStackNavigator<MineStackParamList>();
-const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
 
 // Each tab keeps its own stack, so the tab bar stays in place while screens
 // are pushed inside a tab.
@@ -99,13 +98,31 @@ function SearchTab() {
   );
 }
 
+// My playlists, with the settings behind the gear at the top.
 function MineTab() {
+  const palette = usePalette();
+
   return (
     <MineStack.Navigator screenOptions={useStackOptions()}>
       <MineStack.Screen
         name="Mine"
         component={MineScreen}
-        options={{ title: '我的' }}
+        options={({ navigation }) => ({
+          title: '我的',
+          headerRight: () => (
+            <Pressable
+              hitSlop={8}
+              accessibilityLabel="设置"
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <MaterialIcons
+                name="settings"
+                size={24}
+                color={palette.primaryColor}
+              />
+            </Pressable>
+          ),
+        })}
       />
       <MineStack.Screen
         name="Playlist"
@@ -127,34 +144,27 @@ function MineTab() {
         component={ReorderScreen}
         options={{ title: '编辑歌单' }}
       />
-    </MineStack.Navigator>
-  );
-}
-
-function SettingsTab() {
-  return (
-    <SettingsStack.Navigator screenOptions={useStackOptions()}>
-      <SettingsStack.Screen
+      <MineStack.Screen
         name="Settings"
         component={SettingsScreen}
         options={{ title: '设置' }}
       />
-      <SettingsStack.Screen
+      <MineStack.Screen
         name="Backup"
         component={BackupScreen}
         options={{ title: '备份' }}
       />
-      <SettingsStack.Screen
+      <MineStack.Screen
         name="Restore"
         component={RestoreScreen}
         options={{ title: '恢复' }}
       />
-      <SettingsStack.Screen
+      <MineStack.Screen
         name="About"
         component={AboutScreen}
         options={{ title: '关于' }}
       />
-    </SettingsStack.Navigator>
+    </MineStack.Navigator>
   );
 }
 
@@ -194,11 +204,6 @@ export default function Navigation() {
           name="MineTab"
           component={MineTab}
           options={{ title: '我的' }}
-        />
-        <Tab.Screen
-          name="SettingsTab"
-          component={SettingsTab}
-          options={{ title: '设置' }}
         />
       </Tab.Navigator>
     </NavigationContainer>

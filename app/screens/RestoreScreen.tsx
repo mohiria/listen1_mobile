@@ -6,7 +6,7 @@ import StateJsonConvert from '../../src/modules/state-json-convert';
 import { recoverData } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import { showToast } from '../components/Toast';
-import type { SettingsStackParamList } from '../Navigation';
+import type { MineStackParamList } from '../Navigation';
 import { usePalette } from '../theme';
 import Screen from './Screen';
 
@@ -14,7 +14,7 @@ import Screen from './Screen';
 // playlists in the place of the ones the app has.
 export default function RestoreScreen({
   navigation,
-}: NativeStackScreenProps<SettingsStackParamList, 'Restore'>) {
+}: NativeStackScreenProps<MineStackParamList, 'Restore'>) {
   const palette = usePalette();
   // the text is long, so it is not kept in the state of the screen
   const text = useRef('');
