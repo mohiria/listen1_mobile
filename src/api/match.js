@@ -15,14 +15,15 @@ function stripBrackets(text) {
   return rest;
 }
 
+function plain(text) {
+  return String(text).normalize('NFKC').toLowerCase().replace(/\s+/g, '');
+}
+
 function normalize(text) {
-  const plain = String(text)
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/\s+/g, '');
+  const whole = plain(text);
 
   // A name that is nothing but a bracket is kept as written.
-  return stripBrackets(plain) || plain;
+  return stripBrackets(whole) || whole;
 }
 
 // Providers join several artists with different separators, and some report
@@ -40,6 +41,19 @@ export function isSameSong(a, b) {
 
   return (
     normalize(a.title) === normalize(b.title) &&
+    normalize(firstArtist(a.artist)) === normalize(firstArtist(b.artist))
+  );
+}
+
+// Stricter than isSameSong: what the title says in brackets counts, so a live
+// take, a remix or an excerpt is not the same as the song itself.
+export function isSameVersion(a, b) {
+  if (!a.title || !a.artist || !b.title || !b.artist) {
+    return false;
+  }
+
+  return (
+    plain(a.title) === plain(b.title) &&
     normalize(firstArtist(a.artist)) === normalize(firstArtist(b.artist))
   );
 }

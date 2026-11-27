@@ -29,7 +29,7 @@ test('songs are taken in turn from each provider, in the order given', () => {
 test('the same song from two providers is kept once, from the first one', () => {
   const merged = mergeSongs([
     [song('ne1', '晴天', '周杰伦')],
-    [song('qq1', '晴天 (Live)', '周杰伦;某人'), song('qq2', '稻香', '周杰伦')],
+    [song('qq1', ' 晴天', '周杰伦;某人'), song('qq2', '稻香', '周杰伦')],
   ]);
 
   assert.deepEqual(ids(merged), ['ne1', 'qq2']);
@@ -67,12 +67,26 @@ test('the same song twice in one provider is kept once', () => {
   const merged = mergeSongs([
     [
       song('ne1', '晴天', '周杰伦', true),
-      song('ne2', '晴天 (Live)', '周杰伦'),
+      song('ne2', '晴天', '周杰伦'),
       song('ne3', '晴天', '周杰伦'),
     ],
   ]);
 
   assert.deepEqual(ids(merged), ['ne2']);
+});
+
+test('another version of a song is a song of its own', () => {
+  const merged = mergeSongs([
+    [song('ne1', '晴天', '周杰伦', true), song('ne2', '晴天 (Live)', '周杰伦')],
+    [
+      song('qq1', '晴天 (13秒片段)', '周杰伦'),
+      song('qq2', '晴天（LIVE）', '周杰伦'),
+      song('qq3', '晴天 (DJ版)', '周杰伦'),
+    ],
+  ]);
+
+  // the two live takes are one; the restricted original is not replaced
+  assert.deepEqual(ids(merged), ['ne1', 'qq1', 'ne2', 'qq3']);
 });
 
 test('songs already on show are left alone and not repeated', () => {
@@ -235,7 +249,7 @@ test('when every provider fails nothing is shown and all are named', async () =>
 test('pages that bring nothing new are passed over in the same call', async () => {
   const netease = provider('netease', [
     [song('ne1', '晴天', '周杰伦')],
-    [song('ne2', '晴天 (Live)', '周杰伦')],
+    [song('ne2', '晴 天', '周杰伦')],
     [song('ne3', '稻香', '周杰伦')],
   ]);
   const search = createAggregateSearch([netease], '周杰伦');

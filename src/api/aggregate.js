@@ -1,6 +1,7 @@
 // Searches every provider at once and shows what they find as one list, in
-// which a song that several providers have appears once.
-import { isSameSong } from './match.js';
+// which a song that several providers have appears once. Another version of
+// a song (live, remix, excerpt) is a song of its own here.
+import { isSameVersion } from './match.js';
 
 // lists: one list of songs per provider, in the order the providers are
 // preferred. shown: the songs already on show.
@@ -10,7 +11,7 @@ import { isSameSong } from './match.js';
 // kept, and of those the one from the provider preferred most; it stands
 // where the first copy stood. A song already on show is left as it is.
 export function mergeSongs(lists, shown = []) {
-  const same = (a, b) => a.id === b.id || isSameSong(a, b);
+  const same = (a, b) => a.id === b.id || isSameVersion(a, b);
   const added = [];
   // for each song added, the place of its provider in the order
   const ranks = [];
