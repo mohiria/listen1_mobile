@@ -12,7 +12,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@react-native-vector-icons/material-icons';
 
 import Client, { type Track } from '../../src/api/client';
-import { playTrackInPlaylist, playTracks } from '../../src/redux/actions';
+import {
+  openModalLite,
+  playTrackInPlaylist,
+  playTracks,
+} from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import ListStatus from '../components/ListStatus';
 import TrackRow from '../components/TrackRow';
@@ -20,6 +24,9 @@ import type { PlaylistsStackParamList } from '../Navigation';
 import { usePalette } from '../theme';
 import { useStore } from '../useStore';
 import Screen from './Screen';
+
+const openMenu = (track: Track) =>
+  store.dispatch(openModalLite({ type: 'track', item: track }));
 
 // The songs of one playlist of a provider.
 export default function PlaylistScreen({
@@ -120,6 +127,8 @@ export default function PlaylistScreen({
             track={item}
             playing={nowPlaying !== null && nowPlaying.id === item.id}
             onPress={play}
+            icon="more-vert"
+            onPressIcon={openMenu}
           />
         )}
       />

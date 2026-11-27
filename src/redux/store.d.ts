@@ -12,6 +12,15 @@ export type PlayerState = {
 export type RootState = {
   playerState: PlayerState;
   settingState: { language: string; theme: string };
+  modalState: {
+    // the full-screen player
+    isOpen: boolean;
+    // the sheet; liteType and item keep their last values while it is closed
+    isLiteOpen: boolean;
+    liteType: '' | 'nowplaying' | 'track';
+    // the song the menu is about; only meaningful when liteType is 'track'
+    item: Track;
+  };
 };
 
 export const store: {

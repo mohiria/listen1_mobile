@@ -9,10 +9,15 @@ function TrackRow({
   track,
   playing,
   onPress,
+  icon,
+  onPressIcon,
 }: {
   track: Track;
   playing: boolean;
   onPress: (track: Track) => void;
+  // a button at the end of the row
+  icon?: 'more-vert' | 'close';
+  onPressIcon?: (track: Track) => void;
 }) {
   const palette = usePalette();
   // a restricted song is dimmed but can still be tapped: it may play from
@@ -24,7 +29,10 @@ function TrackRow({
       : undefined;
 
   return (
-    <Pressable style={styles.row} onPress={() => onPress(track)}>
+    <Pressable
+      style={[styles.row, icon !== undefined ? styles.rowWithIcon : null]}
+      onPress={() => onPress(track)}
+    >
       {playing ? (
         <MaterialIcons
           name="volume-up"
@@ -47,21 +55,39 @@ function TrackRow({
           {track.album ? `${track.artist} - ${track.album}` : track.artist}
         </Text>
       </View>
+      {icon !== undefined ? (
+        <Pressable
+          hitSlop={6}
+          style={styles.icon}
+          onPress={() => onPressIcon?.(track)}
+        >
+          <MaterialIcons name={icon} size={20} color={palette.thirdColor} />
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
 
 export default React.memo(TrackRow);
 
+export const TRACK_ROW_HEIGHT = 50;
+
 const styles = StyleSheet.create({
   row: {
     alignItems: 'center',
     flexDirection: 'row',
-    height: 50,
+    height: TRACK_ROW_HEIGHT,
     paddingHorizontal: 20,
   },
+  rowWithIcon: { paddingRight: 10 },
   playing: { marginRight: 10 },
   text: { flex: 1, justifyContent: 'center' },
   title: { fontSize: 14 },
   detail: { fontSize: 12, marginTop: 3 },
+  icon: {
+    alignItems: 'center',
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
 });

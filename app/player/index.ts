@@ -5,6 +5,7 @@ import TrackPlayer, {
   PlaybackState,
   PlayerCommand,
   RepeatMode,
+  useProgress,
   type MediaItem,
 } from '@rntp/player';
 
@@ -97,6 +98,16 @@ function start() {
     }
   });
   setInterval(driver.tick, TICK_MS);
+}
+
+// Where the current song is and how long it is, in seconds, read a couple of
+// times a second. The length is 0 while no song is loaded.
+export function usePlaybackProgress(): { position: number; duration: number } {
+  return useProgress(0.5);
+}
+
+export function seekTo(seconds: number) {
+  TrackPlayer.seekTo(seconds);
 }
 
 // Call once from index.js, before the app component is registered.

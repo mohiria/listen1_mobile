@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 
 import Client, { type Track } from '../../src/api/client';
-import { playTrack } from '../../src/redux/actions';
+import { openModalLite, playTrack } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import ListStatus from '../components/ListStatus';
 import ProviderTabs, {
@@ -17,6 +17,8 @@ import Screen from './Screen';
 const PAGE_SIZE = 20;
 
 const play = (track: Track) => store.dispatch(playTrack(track));
+const openMenu = (track: Track) =>
+  store.dispatch(openModalLite({ type: 'track', item: track }));
 
 // What one provider finds for the keyword. It searches only while it is the
 // provider on show, and again when the keyword changes.
@@ -141,6 +143,8 @@ function SearchResults({
           track={item}
           playing={nowPlaying !== null && nowPlaying.id === item.id}
           onPress={play}
+          icon="more-vert"
+          onPressIcon={openMenu}
         />
       )}
     />

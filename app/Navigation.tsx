@@ -10,7 +10,7 @@ import {
 } from '@react-navigation/native-stack';
 
 import type { PlaylistInfo } from '../src/api/client';
-import TempPlayerBar from './components/TempPlayerBar';
+import MiniPlayer from './components/MiniPlayer';
 import AboutScreen from './screens/AboutScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
@@ -111,7 +111,7 @@ export default function Navigation() {
       <Tab.Navigator
         tabBar={props => (
           <>
-            <TempPlayerBar />
+            <MiniPlayer />
             <BottomTabBar {...props} />
           </>
         )}
