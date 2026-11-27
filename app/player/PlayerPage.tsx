@@ -133,7 +133,6 @@ function ProgressRow({ palette }: { palette: Palette }) {
 type IconName =
   | (typeof MODE_ICONS)[number]
   | 'keyboard-arrow-down'
-  | 'more-horiz'
   | 'skip-previous'
   | 'skip-next'
   | 'pause-circle-outline'
@@ -205,17 +204,6 @@ function PlayerContent() {
           color={color}
           onPress={() => store.dispatch(toggleModal())}
         />
-        {track !== null && track !== undefined ? (
-          <IconButton
-            name="more-horiz"
-            size={30}
-            box={50}
-            color={color}
-            onPress={() =>
-              store.dispatch(openModalLite({ type: 'track', item: track }))
-            }
-          />
-        ) : null}
       </View>
 
       {hasTrack && track.img_url ? (
