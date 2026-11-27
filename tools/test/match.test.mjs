@@ -2,7 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isSameSong } from '../../src/api/match.js';
+import { loadSource } from './load-state.mjs';
+
+const { isSameSong } = await loadSource('src/api/match.ts');
 
 const song = (title, artist) => ({ title, artist });
 

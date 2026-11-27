@@ -2,7 +2,15 @@
 // gives it out, otherwise from the first other provider that has the same
 // song and gives its address out. The same version of the song is looked for
 // at every provider before another version (live, remix) is settled for.
-import { isSameSong, isSameVersion, searchKeyword } from './match.js';
+import { isSameSong, isSameVersion, searchKeyword } from './match';
+import type { ResolveResult, Track } from './types';
+
+type SwitchProvider = {
+  name: string;
+  prefix: string;
+  search(keyword: string): Promise<Track[]>;
+  bootstrapTrack(trackId: string): Promise<string>;
+};
 
 // providers: [{ name, prefix, search(keyword), bootstrapTrack(trackId) }], in
 // the order they are preferred when switching. prefix is what the ids of the
@@ -12,15 +20,23 @@ import { isSameSong, isSameVersion, searchKeyword } from './match.js';
 //   { url, source, switched }  source is the name of the provider that plays
 //   { url: '', reason }        'unavailable': no provider has a playable copy
 //                              'network': not one provider answered
-export function createResolver(providers) {
+export function createResolver(
+  providers: SwitchProvider[]
+): (track: Track) => Promise<ResolveResult> {
   // id of a song -> the same song at the provider it was switched to. The
   // song is kept rather than its address, which expires.
-  const remembered = new Map();
+  const remembered = new Map<
+    string,
+    { provider: SwitchProvider; song: Track }
+  >();
 
-  return async function resolveTrack(track) {
+  return async function resolveTrack(track: Track): Promise<ResolveResult> {
     let answers = 0;
 
-    async function addressOf(provider, trackId) {
+    async function addressOf(
+      provider: SwitchProvider,
+      trackId: string
+    ): Promise<string> {
       try {
         const url = await provider.bootstrapTrack(trackId);
 
@@ -33,7 +49,10 @@ export function createResolver(providers) {
     }
 
     // the same version of the song at the provider, then another version
-    async function matchesAt(provider, keyword) {
+    async function matchesAt(
+      provider: SwitchProvider,
+      keyword: string
+    ): Promise<(Track | undefined)[]> {
       try {
         const songs = (await provider.search(keyword)).filter(
           (song) => !song.disabled

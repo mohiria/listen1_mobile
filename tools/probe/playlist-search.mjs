@@ -1,5 +1,5 @@
 // Probe the playlist search of every provider (A-15), and check that a found
-// playlist opens with the app's own getPlaylist from src/api/client.js.
+// playlist opens with the app's own getPlaylist from src/api/client.ts.
 //
 //   node tools/probe/playlist-search.mjs --net <网络标签> [--keywords 周杰伦,粤语,纯音乐] [--only ne,qq,kw,kg]
 //

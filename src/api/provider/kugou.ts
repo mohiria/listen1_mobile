@@ -2,11 +2,21 @@ import queryString from 'query-string';
 import request from '../request';
 import {kugouIsRestricted} from '../restricted';
 import { isExcerpt } from '../excerpt';
+import type {
+  FoundPlaylist,
+  ParsedUrl,
+  Playlist,
+  PlaylistInfo,
+  ProviderModule,
+  Track,
+} from '../types';
 
-function getSmallImageUrl(url) {
+function getSmallImageUrl(url: string): string {
   return `${url}?param=140y140`;
 }
-function showPlaylist(offset) {
+function showPlaylist(
+  offset: number
+): Promise<{ result: PlaylistInfo[]; hasNextPage: boolean }> {
   const url = `http://m.kugou.com/plist/index?json=true&page=${
     Math.floor(offset / 30) + 1
   }`;
@@ -15,7 +25,7 @@ function showPlaylist(offset) {
       return response.json();
     })
     .then((data) => {
-      const result = data.plist.list.info.map((item) => ({
+      const result = data.plist.list.info.map((item: any) => ({
         cover_img_url: item.imgurl ? item.imgurl.replace('{size}', '400') : '',
         title: item.specialname,
         id: `kgplaylist_${item.specialid}`,
@@ -27,7 +37,7 @@ function showPlaylist(offset) {
       return {result, hasNextPage: !!data.plist.list.has_next};
     });
 }
-function getNEScore(song) {
+function getNEScore(song: any): number {
   if (!song) {
     return 0;
   }
@@ -79,12 +89,12 @@ function getNEScore(song) {
   return 100;
 }
 
-function isPlayable(song) {
+function isPlayable(song: any): boolean {
   return getNEScore(song) < 100;
 }
 
-function convert(allowAll) {
-  return (songInfo) => ({
+function convert(allowAll: boolean) {
+  return (songInfo: any): Track => ({
     id: `netrack_${songInfo.id}`,
     title: songInfo.name,
     artist: songInfo.ar[0].name,
@@ -99,22 +109,22 @@ function convert(allowAll) {
   });
 }
 
-function getPlaylist(playlistId) {
+function getPlaylist(playlistId: string): Promise<Playlist> | null {
   const listId = playlistId.split('_')[0];
-  const d = playlistId.split('_').pop();
+  const d = playlistId.split('_').pop() as string;
   switch (listId) {
     case 'kgplaylist':
       return kg_get_playlist(d);
     case 'kgalbum':
-      return kg_album(d);
+      return kg_album(d) as Promise<any>;
     case 'kgartist':
-      return kg_artist(d);
+      return kg_artist(d) as Promise<any>;
     default:
       return null;
   }
 }
 
-async function kg_artist(listId) {
+async function kg_artist(listId: string) {
   let target_url = `http://mobilecdnbj.kugou.com/api/v3/singer/info?singerid=${listId}`;
   const info = await request(target_url)
     .then((response) => {
@@ -140,12 +150,12 @@ async function kg_artist(listId) {
       return response.json();
     })
     .then(({data}) => {
-      return data.data.info.map((t) => kg_render_artist_result_item(t, info));
+      return data.data.info.map((t: any) => kg_render_artist_result_item(t, info));
     });
   return {info, tracks};
 }
 
-async function kg_render_artist_result_item(item, info) {
+async function kg_render_artist_result_item(item: any, info: PlaylistInfo) {
   const track = {
     id: `kgtrack_${item.hash}`,
     title: '',
@@ -193,7 +203,7 @@ async function kg_render_artist_result_item(item, info) {
   return track;
 }
 
-async function kg_album(listId) {
+async function kg_album(listId: string) {
   // eslint-disable-line no-unused-vars
   let target_url = `${
     'http://mobilecdnbj.kugou.com/api/v3/album/info?' + 'albumid='
@@ -220,10 +230,10 @@ async function kg_album(listId) {
   target_url = `${
     'http://mobilecdnbj.kugou.com/api/v3/album/song?' + 'albumid='
   }${listId}&page=1&pagesize=-1`;
-  const tracks = await request(target_url).then((res) => {
+  const tracks = await request(target_url).then((res: any) => {
     let res_data = res.data;
     res_data = JSON.parse(res_data);
-    return res_data.data.info.map((t) =>
+    return res_data.data.info.map((t: any) =>
       kg_render_album_result_item(t, info, listId),
     );
   });
@@ -233,7 +243,7 @@ async function kg_album(listId) {
 // m.kugou.com/plist/list redirects to a web page unless the request looks
 // like a phone browser. These two answer any client, and the song list
 // already carries name, cover and privilege, so no request per song.
-async function kg_get_playlist(listId) {
+async function kg_get_playlist(listId: string): Promise<Playlist> {
   const base = 'http://mobilecdnbj.kugou.com/api/v3/special';
   const [{data: special}, {data: songs}] = await Promise.all([
     request(`${base}/info?specialid=${listId}`).then((response) =>
@@ -253,7 +263,7 @@ async function kg_get_playlist(listId) {
   return {info, tracks: songs.info.map(kg_render_playlist_result_item)};
 }
 
-function kg_render_playlist_result_item(item) {
+function kg_render_playlist_result_item(item: any): Track {
   // filename is "歌手 - 歌名"
   const separator = item.filename.indexOf(' - ');
   const cover = item.trans_param && item.trans_param.union_cover;
@@ -275,7 +285,11 @@ function kg_render_playlist_result_item(item) {
   };
 }
 
-async function kg_render_album_result_item(item, info, album_id) {
+async function kg_render_album_result_item(
+  item: any,
+  info: PlaylistInfo,
+  album_id: string
+) {
   const track = {
     id: `kgtrack_${item.hash}`,
     title: '',
@@ -306,7 +320,7 @@ async function kg_render_album_result_item(item, info, album_id) {
   return track;
 }
 
-async function bootstrapTrack(trackId) {
+async function bootstrapTrack(trackId: string): Promise<string> {
   const song_id = trackId.slice('kgtrack_'.length);
   let target_url = `http://m.kugou.com/app/i/getSongInfo.php?cmd=playInfo&hash=${song_id}`;
 
@@ -323,7 +337,10 @@ async function bootstrapTrack(trackId) {
     });
 }
 
-async function search(keyword, curpage) {
+async function search(
+  keyword: string,
+  curpage: number
+): Promise<{ result: Track[]; total: number }> {
   // Without privilege_filter=0 the server drops most songs that need payment
   // and reports the rest as free, including some that are not.
   const target_url = `http://songsearch.kugou.com/song_search_v2?keyword=${encodeURIComponent(
@@ -335,7 +352,7 @@ async function search(keyword, curpage) {
     .then(({data}) => {
       return {
         result: data.lists
-          .filter((song) => !isExcerpt(song.Duration))
+          .filter((song: any) => !isExcerpt(song.Duration))
           .map(kg_convert_song),
         total: data.total,
       };
@@ -343,7 +360,10 @@ async function search(keyword, curpage) {
 }
 
 // The playlists whose names match the keyword. The total stops at 480.
-async function searchPlaylist(keyword, curpage) {
+async function searchPlaylist(
+  keyword: string,
+  curpage: number
+): Promise<{ result: FoundPlaylist[]; total: number }> {
   const target_url = `http://mobilecdnbj.kugou.com/api/v3/search/special?keyword=${encodeURIComponent(
     keyword,
   )}&pagesize=20&filter=0&page=${curpage}`;
@@ -351,7 +371,7 @@ async function searchPlaylist(keyword, curpage) {
   return request(target_url)
     .then((response) => response.json())
     .then(({data}) => ({
-      result: data.info.map((item) => ({
+      result: data.info.map((item: any) => ({
         cover_img_url: item.imgurl ? item.imgurl.replace('{size}', '400') : '',
         title: item.specialname,
         id: `kgplaylist_${item.specialid}`,
@@ -363,8 +383,8 @@ async function searchPlaylist(keyword, curpage) {
     }));
 }
 
-function kg_convert_song(song) {
-  const track = {
+function kg_convert_song(song: any): Track {
+  const track: Track = {
     id: `kgtrack_${song.FileHash}`,
     title: song.SongName,
     artist: '',
@@ -389,8 +409,8 @@ function kg_convert_song(song) {
   return track;
 }
 
-function parseUrl(url) {
-  let result = null;
+function parseUrl(url: string): ParsedUrl | null {
+  let result: ParsedUrl | null = null;
 
   const r = /\/\/music\.163\.com\/playlist\/([0-9]+)/g.exec(url);
 
@@ -420,7 +440,7 @@ function parseUrl(url) {
 
 const meta = {name: '酷狗', platformId: 'kg', enName: 'kugou'};
 
-export default {
+const provider: ProviderModule = {
   meta,
   showPlaylist,
   getPlaylist,
@@ -429,3 +449,5 @@ export default {
   searchPlaylist,
   parseUrl,
 };
+
+export default provider;

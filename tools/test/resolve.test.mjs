@@ -2,7 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createResolver } from '../../src/api/resolve.js';
+import { loadSource } from './load-state.mjs';
+
+const { createResolver } = await loadSource('src/api/resolve.ts');
 
 // A provider stand-in. songs maps a track id to its address; '' is a song the
 // provider withholds. down makes every request fail, as a timeout would.

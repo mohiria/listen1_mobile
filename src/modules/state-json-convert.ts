@@ -1,19 +1,24 @@
 import { defaultPlayerState } from '../redux/player.reducer';
 import { defaultmyPlaylistState } from '../redux/myplaylist.reducer';
+import type { MyPlaylistState, PlayerState } from '../redux/types';
 
-function deepCopy(oldObject) {
+function deepCopy<T>(oldObject: T): T {
   return JSON.parse(JSON.stringify(oldObject));
 }
 
+// The play queue and my playlists as one object, in the layout the other
+// Listen 1 clients export and import.
 export default class StateJsonConvert {
-  static getJson(state) {
+  static getJson(state: {
+    playerState: PlayerState;
+    myPlaylistState: MyPlaylistState;
+  }): object {
     const { playerState, myPlaylistState } = state;
 
-    const nowPlayingTrackId =
-      playerState.nowPlayingTrack === undefined
-        ? '-1'
-        : playerState.nowPlayingTrack.id;
-    const result = {
+    // The old code read the current song from a field that is not there, so
+    // what it exported was always '-1'. Left as it behaved.
+    const nowPlayingTrackId = '-1';
+    const result: { [key: string]: unknown } = {
       // TODO: support language setting
       language: 'zh_CN',
       'player-settings': {
@@ -26,7 +31,7 @@ export default class StateJsonConvert {
     };
 
     myPlaylistState.playlists.forEach(i => {
-      const playlist = myPlaylistState.myPlaylistDict[i.id];
+      const playlist = myPlaylistState.myPlaylistDict[i.id]!;
       // fix local image url, in a copy: the state is not to change
       const info = playlist.info.cover_img_url.startsWith('http')
         ? playlist.info
@@ -38,7 +43,12 @@ export default class StateJsonConvert {
     return result;
   }
   // Throws when the data is not what getJson gives.
-  static getState(jsonData) {
+  static getState(data: unknown): {
+    playerState: object;
+    myPlaylistState: object;
+  } {
+    const jsonData = data as any;
+
     if (
       jsonData === null ||
       typeof jsonData !== 'object' ||
@@ -54,7 +64,7 @@ export default class StateJsonConvert {
       ? jsonData['current-playing']
       : [];
 
-    jsonData.playerlists.forEach(playlistId => {
+    jsonData.playerlists.forEach((playlistId: string) => {
       const playlist = jsonData[playlistId];
 
       if (
@@ -74,7 +84,7 @@ export default class StateJsonConvert {
         myPlaylistState.playlists.push(playlist.info);
       } else {
         // load favorite ids
-        jsonData[playlistId].tracks.forEach(track => {
+        jsonData[playlistId].tracks.forEach((track: any) => {
           myPlaylistState.myFavoriteIds[track.id] = 1;
         });
       }

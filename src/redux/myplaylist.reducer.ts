@@ -1,4 +1,6 @@
+import type { PlaylistInfo, Track } from '../api/types';
 import { TYPE } from './actions';
+import type { MyPlaylist, MyPlaylistState } from './types';
 
 function guid() {
   function s4() {
@@ -10,29 +12,32 @@ function guid() {
   return `${s4() + s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
 }
 
-const myFavoritePlaylistInfo = {
+const myFavoritePlaylistInfo: PlaylistInfo = {
   id: 'myplaylist_favorite',
   title: '我喜欢的音乐',
   cover_img_url: './assets/images/logo.png',
 };
 
-const myFavoritePlaylist = {
+const myFavoritePlaylist: MyPlaylist = {
   info: myFavoritePlaylistInfo,
   tracks: [],
 };
 
-function handleAddToMyPlaylist(state, action) {
-  let newTracks = [];
+function handleAddToMyPlaylist(
+  state: MyPlaylistState,
+  action: any
+): MyPlaylistState {
+  let newTracks: Track[] = [];
 
   if (
-    state.myPlaylistDict[action.payload.playlist.id].tracks.filter(
+    state.myPlaylistDict[action.payload.playlist.id]!.tracks.filter(
       i => i.id === action.payload.track.id
     ).length > 0
   ) {
     return state;
   }
   newTracks = [
-    ...state.myPlaylistDict[action.payload.playlist.id].tracks,
+    ...state.myPlaylistDict[action.payload.playlist.id]!.tracks,
     action.payload.track,
   ];
 
@@ -43,7 +48,7 @@ function handleAddToMyPlaylist(state, action) {
       myPlaylistDict: {
         ...state.myPlaylistDict,
         [action.payload.playlist.id]: {
-          ...state.myPlaylistDict[action.payload.playlist.id],
+          ...state.myPlaylistDict[action.payload.playlist.id]!,
           tracks: newTracks,
         },
       },
@@ -55,15 +60,18 @@ function handleAddToMyPlaylist(state, action) {
     myPlaylistDict: {
       ...state.myPlaylistDict,
       [action.payload.playlist.id]: {
-        ...state.myPlaylistDict[action.payload.playlist.id],
+        ...state.myPlaylistDict[action.payload.playlist.id]!,
         tracks: newTracks,
       },
     },
   };
 }
 
-function handleAddToMyFavorite(state, action) {
-  const { payload: track } = action;
+function handleAddToMyFavorite(
+  state: MyPlaylistState,
+  action: any
+): MyPlaylistState {
+  const track: Track = action.payload;
 
   // console.log(state.myFavoriteIds, track);
 
@@ -93,8 +101,11 @@ function handleAddToMyFavorite(state, action) {
   });
 }
 
-function handleRemoveFromMyFavorite(state, action) {
-  const { payload: track } = action;
+function handleRemoveFromMyFavorite(
+  state: MyPlaylistState,
+  action: any
+): MyPlaylistState {
+  const track: Track = action.payload;
 
   if (state.myFavoriteIds[track.id] === undefined) {
     // track already not in favorite
@@ -103,7 +114,7 @@ function handleRemoveFromMyFavorite(state, action) {
 
   const newTracks = state.myPlaylistDict[
     myFavoritePlaylist.info.id
-  ].tracks.filter(i => i.id !== track.id);
+  ]!.tracks.filter(i => i.id !== track.id);
 
   return {
     ...state,
@@ -118,7 +129,7 @@ function handleRemoveFromMyFavorite(state, action) {
   };
 }
 
-export const defaultmyPlaylistState = {
+export const defaultmyPlaylistState: MyPlaylistState = {
   myFavoriteIds: {},
   playlists: [myFavoritePlaylistInfo],
   myPlaylistDict: {
@@ -126,11 +137,14 @@ export const defaultmyPlaylistState = {
   },
 };
 
-export const myPlaylistReducer = (state = defaultmyPlaylistState, action) => {
-  let newPlaylist;
-  let currentKeys;
-  let newMyPlaylistDict;
-  let newMyFavDict;
+export const myPlaylistReducer = (
+  state: MyPlaylistState = defaultmyPlaylistState,
+  action: any
+): MyPlaylistState => {
+  let newPlaylist: MyPlaylist;
+  let currentKeys: string[];
+  let newMyPlaylistDict: MyPlaylistState['myPlaylistDict'];
+  let newMyFavDict: MyPlaylistState['myFavoriteIds'];
 
   switch (action.type) {
     case TYPE.CREATE_MY_PLAYLIST:
@@ -149,7 +163,7 @@ export const myPlaylistReducer = (state = defaultmyPlaylistState, action) => {
         },
       };
     case TYPE.SAVE_MY_PLAYLISTS:
-      currentKeys = action.playlists.map(i => i.id);
+      currentKeys = action.playlists.map((i: PlaylistInfo) => i.id);
 
       newMyPlaylistDict = {
         [myFavoritePlaylist.info.id]:
@@ -163,13 +177,13 @@ export const myPlaylistReducer = (state = defaultmyPlaylistState, action) => {
         ...state,
         myPlaylistDict: newMyPlaylistDict,
         playlists: [
-          state.myPlaylistDict[myFavoritePlaylist.info.id].info,
+          state.myPlaylistDict[myFavoritePlaylist.info.id]!.info,
           ...action.playlists,
         ],
       };
     case TYPE.EDIT_MY_PLAYLIST:
       if (action.playlist.info.id === myFavoritePlaylistInfo.id) {
-        currentKeys = action.playlist.tracks.map(i => i.id);
+        currentKeys = action.playlist.tracks.map((i: Track) => i.id);
         newMyFavDict = {};
         currentKeys.forEach(k => {
           newMyFavDict[k] = 1;

@@ -2,7 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import request, { requestBytes } from '../../src/api/request.js';
+import { loadSource } from './load-state.mjs';
+
+const { default: request, requestBytes } = await loadSource('src/api/request.ts');
 
 function stubFetch(t, impl) {
   const realFetch = globalThis.fetch;

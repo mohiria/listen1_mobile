@@ -1,5 +1,5 @@
 // Probe every provider's four capabilities (playlist list, playlist detail,
-// search, track URL) by running the app's own src/api/client.js under Node.
+// search, track URL) by running the app's own src/api/client.ts under Node.
 //
 //   node tools/probe/probe.mjs --net <网络标签> [--only ne,qq] [--keyword 周杰伦]
 //
@@ -123,7 +123,7 @@ async function loadClient() {
   const outfile = path.join(here, 'node_modules', '.cache', 'client.mjs');
 
   await esbuild.build({
-    entryPoints: [path.join(repoRoot, 'src', 'api', 'client.js')],
+    entryPoints: [path.join(repoRoot, 'src', 'api', 'client.ts')],
     bundle: true,
     format: 'esm',
     platform: 'node',

@@ -2,7 +2,9 @@
 
 import { persistReducer } from 'redux-persist';
 import storage from '@react-native-async-storage/async-storage';
+import type { Track } from '../api/types';
 import { TYPE } from './actions';
+import type { PlayerState } from './types';
 
 const ENUM_PLAYMODE = Object.freeze({
   LOOP: 0,
@@ -10,7 +12,7 @@ const ENUM_PLAYMODE = Object.freeze({
   REPEAT_ONE: 2,
 });
 
-function shuffle(a) {
+function shuffle<T>(a: T[]): T[] {
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
 
@@ -20,7 +22,7 @@ function shuffle(a) {
   return a;
 }
 
-function generateShuffleIds(tracks) {
+function generateShuffleIds(tracks: Track[]): string[] {
   const newShuffleIds = tracks.map((track) => track.id);
 
   shuffle(newShuffleIds);
@@ -28,7 +30,7 @@ function generateShuffleIds(tracks) {
   return newShuffleIds;
 }
 
-function safeArrayIndex(array, index) {
+function safeArrayIndex<T>(array: T[], index: number): T {
   let targetIndex = index;
 
   if (index < 0) {
@@ -40,17 +42,17 @@ function safeArrayIndex(array, index) {
   return array[targetIndex];
 }
 
-function getTrackByOffset(state, offset) {
+function getTrackByOffset(state: PlayerState, offset: number): Track {
   const index = state.tracks.findIndex(
-    (i) => i.id === state.nowplayingTrack.id
+    (i) => i.id === state.nowplayingTrack!.id
   );
 
   return safeArrayIndex(state.tracks, index + offset);
 }
 
-function getShuffleTrackByOffset(state, offset) {
+function getShuffleTrackByOffset(state: PlayerState, offset: number): Track {
   const shuffleIndex = state.shuffleIds.findIndex(
-    (id) => id === state.nowplayingTrack.id
+    (id) => id === state.nowplayingTrack!.id
   );
 
   const nowplayingTrackId = safeArrayIndex(
@@ -62,8 +64,13 @@ function getShuffleTrackByOffset(state, offset) {
   return state.tracks[trackIndex];
 }
 
-function insertArrayNextToTarget(array, item, target, compareKey) {
-  const result = [];
+function insertArrayNextToTarget<T>(
+  array: T[],
+  item: T,
+  target: T,
+  compareKey?: keyof T
+): T[] {
+  const result: T[] = [];
 
   for (let i = 0; i < array.length; i++) {
     result.push(array[i]);
@@ -81,7 +88,7 @@ function insertArrayNextToTarget(array, item, target, compareKey) {
 
 // Name of the provider the current song is played from when that is not its
 // own, otherwise ''.
-export function getPlayingSource(state) {
+export function getPlayingSource(state: PlayerState): string {
   const { nowplayingTrack, playingSource } = state;
 
   if (!nowplayingTrack || !playingSource) {
@@ -91,7 +98,10 @@ export function getPlayingSource(state) {
   return playingSource.id === nowplayingTrack.id ? playingSource.source : '';
 }
 
-function next(state, extraState) {
+function next(
+  state: PlayerState,
+  extraState?: Partial<PlayerState> | null
+): PlayerState {
   let extra = extraState;
 
   if (extra === null) {
@@ -124,18 +134,18 @@ function next(state, extraState) {
 }
 // The song a "next" would move to, without moving there. Null when nothing
 // is playing or the play queue is empty.
-export function peekNextTrack(state) {
+export function peekNextTrack(state: PlayerState): Track | null {
   if (!state.nowplayingTrack || state.tracks.length === 0) {
     return null;
   }
 
   return next(state, null).nowplayingTrack || null;
 }
-function pause(state) {
+function pause(state: PlayerState): PlayerState {
   return { ...state, isPlaying: false };
 }
 
-export const defaultPlayerState = {
+export const defaultPlayerState: PlayerState = {
   playMode: 0,
   nowplayingTrack: null,
   volume: 100,
@@ -151,10 +161,13 @@ export const defaultPlayerState = {
   playingSource: null,
 };
 
-const playerReducerBase = (state = defaultPlayerState, action) => {
-  let index;
-  let newPlayMode;
-  let newShuffleIds;
+const playerReducerBase = (
+  state: PlayerState = defaultPlayerState,
+  action: any
+): PlayerState => {
+  let index: number;
+  let newPlayMode: number;
+  let newShuffleIds: string[];
   switch (action.type) {
     case TYPE.PLAY:
       return { ...state, isPlaying: true };
@@ -285,15 +298,14 @@ const playerReducerBase = (state = defaultPlayerState, action) => {
     case TYPE.NEXT_TRACK:
       return next(state);
     case TYPE.LOAD_FAIL:
-      if (TYPE.playMode === ENUM_PLAYMODE.REPEAT_ONE) {
-        return pause(state);
-      }
+      // The old code meant to pause here in repeat one, but read the play mode
+      // from where there is none, so it never did. Left as it behaved.
       if (Object.keys(state.skipIds).length >= state.tracks.length) {
         return pause(state);
       }
 
       return next(state, {
-        skipIds: { ...state.skipIds, [state.nowplayingTrack.id]: 1 },
+        skipIds: { ...state.skipIds, [state.nowplayingTrack!.id]: 1 },
       });
 
     case TYPE.REMOVE_TRACK:

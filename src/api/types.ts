@@ -7,6 +7,11 @@ export type Track = {
   // the provider the song belongs to, by its enName
   source: string;
   disabled?: boolean;
+  artist_id?: string;
+  album_id?: string;
+  source_url?: string;
+  url?: string;
+  lyric_url?: string;
 };
 
 export type Provider = { name: string; platformId: string; enName: string };
@@ -22,7 +27,14 @@ export type AggregateSearch = {
   more(): Promise<{ tracks: Track[]; failed: string[]; done: boolean }>;
 };
 
-export type PlaylistInfo ={ id: string; title: string; cover_img_url: string };
+export type PlaylistInfo = {
+  id: string;
+  title: string;
+  cover_img_url: string;
+  source_url?: string;
+};
+
+export type Playlist = { info: PlaylistInfo; tracks: Track[] };
 
 // A playlist as a search finds it.
 export type FoundPlaylist = PlaylistInfo & { author: string; count: number };
@@ -35,24 +47,25 @@ export type PlaylistSearch = {
   }>;
 };
 
-export default class Client {
-  static getPlatformArray(): Provider[];
-  static getProviderName(enName: string): string;
-  static showPlaylist(
-    offset: number,
-    platformId: string
-  ): Promise<{ result: PlaylistInfo[] }>;
-  static search(
+export type ParsedUrl = { type: string; id: string };
+
+// What every file in ./provider exports.
+export type ProviderModule = {
+  meta: Provider;
+  showPlaylist(
+    offset: number
+  ): Promise<{ result: PlaylistInfo[]; hasNextPage?: boolean }>;
+  // null for an id that is not a playlist of the provider
+  getPlaylist(playlistId: string): Promise<Playlist> | null;
+  // '' when the provider withholds the song
+  bootstrapTrack(trackId: string): Promise<string>;
+  search(
     keyword: string,
-    page: number,
-    platformId: string
+    page: number
   ): Promise<{ result: Track[]; total: number }>;
-  static searchAll(keyword: string): AggregateSearch;
-  static searchPlaylists(keyword: string, platformId?: string): PlaylistSearch;
-  static getPlaylist(
-    playlistId: string
-  ): Promise<{ info: PlaylistInfo; tracks: Track[] }>;
-  static resolveTrack(track: Track): Promise<ResolveResult>;
-  // The playlist a link shared from a provider points to, if it is one.
-  static parseUrl(url: string): { type: string; id: string } | null;
-}
+  searchPlaylist(
+    keyword: string,
+    page: number
+  ): Promise<{ result: FoundPlaylist[]; total: number }>;
+  parseUrl(url: string): ParsedUrl | null;
+};

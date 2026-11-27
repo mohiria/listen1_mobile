@@ -2,11 +2,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
+import { loadSource } from './load-state.mjs';
+
+const {
   createAggregateSearch,
   mergeSongs,
   takeInTurn,
-} from '../../src/api/aggregate.js';
+} = await loadSource('src/api/aggregate.ts');
 
 const song = (id, title, artist, disabled = false) => ({
   id,

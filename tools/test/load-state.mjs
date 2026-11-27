@@ -7,6 +7,31 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..');
 const probeModules = path.join(repoRoot, 'tools', 'probe', 'node_modules');
 
+// One source file of the app as Node can import it. The sources are
+// TypeScript, which this Node does not read by itself.
+export async function loadSource(file) {
+  const esbuild = await import(
+    pathToFileURL(path.join(probeModules, 'esbuild', 'lib', 'main.js')).href
+  );
+  const outfile = path.join(
+    probeModules,
+    '.cache',
+    `${file.replace(/[^a-z0-9]+/gi, '-')}.mjs`
+  );
+
+  await esbuild.build({
+    entryPoints: [path.join(repoRoot, file)],
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    outfile,
+    logLevel: 'error',
+    nodePaths: [probeModules],
+  });
+
+  return import(`${pathToFileURL(outfile).href}?t=${Date.now()}`);
+}
+
 export async function loadState() {
   const esbuild = await import(
     pathToFileURL(path.join(probeModules, 'esbuild', 'lib', 'main.js')).href
@@ -16,9 +41,9 @@ export async function loadState() {
   await esbuild.build({
     stdin: {
       contents: `
-        export { default as reducer } from './src/redux/reducer.js';
-        export * as actions from './src/redux/actions.js';
-        export { default as StateJsonConvert } from './src/modules/state-json-convert.js';
+        export { default as reducer } from './src/redux/reducer.ts';
+        export * as actions from './src/redux/actions.ts';
+        export { default as StateJsonConvert } from './src/modules/state-json-convert.ts';
         export { createPlaybackDriver } from './app/player/driver.ts';
       `,
       resolveDir: repoRoot,

@@ -102,7 +102,7 @@ async function loadMatch() {
   const outfile = path.join(here, 'node_modules', '.cache', 'youtube-match.mjs');
 
   await esbuild.build({
-    entryPoints: [path.join(repoRoot, 'src', 'api', 'match.js')],
+    entryPoints: [path.join(repoRoot, 'src', 'api', 'match.ts')],
     bundle: true,
     format: 'esm',
     outfile,

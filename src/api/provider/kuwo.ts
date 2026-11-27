@@ -3,11 +3,21 @@ import queryString from 'query-string';
 import request from '../request';
 import { kuwoIsRestricted, kuwoIsPromptAudio } from '../restricted';
 import { isExcerpt } from '../excerpt';
+import type {
+  FoundPlaylist,
+  ParsedUrl,
+  Playlist,
+  PlaylistInfo,
+  ProviderModule,
+  Track,
+} from '../types';
 
-function getSmallImageUrl(url) {
+function getSmallImageUrl(url: string): string {
   return `${url}?param=140y140`;
 }
-function showPlaylist(offset) {
+function showPlaylist(
+  offset: number
+): Promise<{ result: PlaylistInfo[]; hasNextPage: boolean }> {
   const url = `http://www.kuwo.cn/www/categoryNew/getPlayListInfoUnderCategory?type=taglist&digest=10000&id=37&start=${offset}&count=30`;
 
   return request(url)
@@ -18,7 +28,7 @@ function showPlaylist(offset) {
       if (!data[0]) {
         return { result: [], hasNextPage: false };
       }
-      const result = data[0].data.map((item) => ({
+      const result = data[0].data.map((item: any) => ({
         cover_img_url: item.img,
         title: item.name,
         id: `kwplaylist_${item.id}`,
@@ -27,7 +37,7 @@ function showPlaylist(offset) {
       return { result, hasNextPage: true };
     });
 }
-function getNEScore(song) {
+function getNEScore(song: any): number {
   if (!song) {
     return 0;
   }
@@ -79,12 +89,12 @@ function getNEScore(song) {
   return 100;
 }
 
-function isPlayable(song) {
+function isPlayable(song: any): boolean {
   return getNEScore(song) < 100;
 }
 
-function convert(allowAll) {
-  return (songInfo) => ({
+function convert(allowAll: boolean) {
+  return (songInfo: any): Track => ({
     id: `netrack_${songInfo.id}`,
     title: songInfo.name,
     artist: songInfo.ar[0].name,
@@ -99,9 +109,9 @@ function convert(allowAll) {
   });
 }
 
-function getPlaylist(playlistId) {
+function getPlaylist(playlistId: string): Promise<Playlist> | null {
   const list_id = playlistId.split('_')[0];
-  const d = playlistId.split('_').pop();
+  const d = playlistId.split('_').pop() as string;
   switch (list_id) {
     case 'kwplaylist':
       return kw_get_playlist(d);
@@ -114,7 +124,7 @@ function getPlaylist(playlistId) {
   }
 }
 
-async function kw_get_playlist(playlistId) {
+async function kw_get_playlist(playlistId: string): Promise<Playlist> {
   const target_url = `http://nplserver.kuwo.cn/pl.svc?op=getlistinfo&pn=0&rn=200&encode=utf-8&keyset=pl2012&pcmp4=1&pid=${playlistId}&vipver=MUSIC_9.0.2.0_W1&newver=1`;
 
   return await request(target_url)
@@ -129,18 +139,18 @@ async function kw_get_playlist(playlistId) {
         source_url: `http://www.kuwo.cn/playlist/index?pid=${data.id}`,
       };
 
-      const tracks = data.musiclist.map((t) =>
+      const tracks = data.musiclist.map((t: any) =>
         kw_render_playlist_result_item(t)
       );
       return { info, tracks };
     });
 }
 
-function html_decode(str) {
+function html_decode(str: string): string {
   return str.replace(/(&nbsp;)/g, ' ');
 }
 
-function kw_render_playlist_result_item(item) {
+function kw_render_playlist_result_item(item: any): Track {
   return {
     id: `kwtrack_${item.id}`,
     title: html_decode(item.name),
@@ -157,7 +167,7 @@ function kw_render_playlist_result_item(item) {
   };
 }
 
-function bootstrapTrack(trackId) {
+function bootstrapTrack(trackId: string): Promise<string> {
   const songId = trackId.slice('kwtrack_'.length);
 
   const target_url = `${
@@ -183,7 +193,7 @@ function bootstrapTrack(trackId) {
     });
 }
 
-function kw_search_cover(item) {
+function kw_search_cover(item: any): string {
   if (item.web_albumpic_short) {
     return `https://img2.kuwo.cn/star/albumcover/${item.web_albumpic_short}`;
   }
@@ -194,7 +204,10 @@ function kw_search_cover(item) {
   return '';
 }
 
-async function search(keyword, curpage) {
+async function search(
+  keyword: string,
+  curpage: number
+): Promise<{ result: Track[]; total: number }> {
   // www.kuwo.cn/api/www/search needs a token and a Secret header derived
   // from a cookie whose name keeps changing, and answers "The request is
   // illegal!" without them. This one needs neither. Its pages count from 0.
@@ -207,8 +220,10 @@ async function search(keyword, curpage) {
   return request(target_url)
     .then((response) => response.json())
     .then((data) => {
-      const songs = data.abslist.filter((item) => !isExcerpt(item.DURATION));
-      const tracks = songs.map((item) => {
+      const songs = data.abslist.filter(
+        (item: any) => !isExcerpt(item.DURATION)
+      );
+      const tracks = songs.map((item: any): Track => {
         const musicrid = item.MUSICRID.split('_')[1];
 
         return {
@@ -233,7 +248,10 @@ async function search(keyword, curpage) {
 
 // The playlists whose names match the keyword: the search of songs with
 // another ft. Its pages count from 0.
-async function searchPlaylist(keyword, curpage) {
+async function searchPlaylist(
+  keyword: string,
+  curpage: number
+): Promise<{ result: FoundPlaylist[]; total: number }> {
   const target_url = `http://search.kuwo.cn/r.s?client=kt&all=${encodeURIComponent(
     keyword
   )}&pn=${
@@ -243,7 +261,7 @@ async function searchPlaylist(keyword, curpage) {
   return request(target_url)
     .then((response) => response.json())
     .then((data) => ({
-      result: data.abslist.map((item) => ({
+      result: data.abslist.map((item: any) => ({
         cover_img_url: item.pic,
         title: html_decode(item.name),
         id: `kwplaylist_${item.playlistid}`,
@@ -255,8 +273,8 @@ async function searchPlaylist(keyword, curpage) {
     }));
 }
 
-function parseUrl(url) {
-  let result = null;
+function parseUrl(url: string): ParsedUrl | null {
+  let result: ParsedUrl | null = null;
 
   const r = /\/\/music\.163\.com\/playlist\/([0-9]+)/g.exec(url);
 
@@ -286,7 +304,7 @@ function parseUrl(url) {
 
 const meta = { name: '酷我', platformId: 'kw', enName: 'kuwo' };
 
-export default {
+const provider: ProviderModule = {
   meta,
   showPlaylist,
   getPlaylist,
@@ -295,3 +313,5 @@ export default {
   searchPlaylist,
   parseUrl,
 };
+
+export default provider;

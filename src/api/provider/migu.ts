@@ -1,6 +1,14 @@
 import request from '../request';
 import { miguIsRestricted } from '../restricted';
 import { isExcerpt } from '../excerpt';
+import type {
+  FoundPlaylist,
+  ParsedUrl,
+  Playlist,
+  PlaylistInfo,
+  ProviderModule,
+  Track,
+} from '../types';
 
 const APP_HOST = 'https://app.c.nf.migu.cn';
 const IMAGE_HOST = 'https://d.musicapp.migu.cn';
@@ -8,20 +16,22 @@ const SONGS_PER_PAGE = 50;
 // what one playlist shows at most, so that a huge one cannot ask without end
 const MOST_PAGES = 20;
 
-function json(url, init) {
+function json(url: string, init?: RequestInit): Promise<any> {
   return request(url, init).then((response) => response.json());
 }
 
-function showPlaylist(offset) {
+function showPlaylist(
+  offset: number
+): Promise<{ result: PlaylistInfo[]; hasNextPage: boolean }> {
   const url = `${APP_HOST}/MIGUM2.0/v2.0/content/getMusicData.do?count=30&start=${
     offset / 30 + 1
   }&templateVersion=5&type=1`;
 
   return json(url).then(({ data }) => {
     const items = data.contentItemList[0].itemList;
-    const result = [];
+    const result: PlaylistInfo[] = [];
 
-    items.forEach((item) => {
+    items.forEach((item: any) => {
       const match = /id=([0-9]+)&/.exec(item.actionUrl);
 
       if (match) {
@@ -39,11 +49,11 @@ function showPlaylist(offset) {
 }
 
 // Several singers come as "周杰伦|费玉清"; the others give the first only.
-function firstSinger(singer) {
+function firstSinger(singer: unknown): string {
   return String(singer || '').split('|')[0];
 }
 
-function cover(song) {
+function cover(song: any): string {
   const images = song.albumImgs || [];
   // the smallest is the last of the three
   const image = images[images.length - 1];
@@ -52,7 +62,7 @@ function cover(song) {
 }
 
 // A song of a playlist. A song is asked for by its contentId alone.
-function convertListed(song) {
+function convertListed(song: any): Track {
   return {
     id: `mgtrack_${song.contentId}`,
     title: song.songName,
@@ -68,14 +78,14 @@ function convertListed(song) {
   };
 }
 
-function songsOfPlaylist(listId, page) {
+function songsOfPlaylist(listId: string, page: number): Promise<Track[]> {
   return json(
     `${APP_HOST}/MIGUM2.0/v1.0/user/queryMusicListSongs.do?musicListId=${listId}&pageNo=${page}&pageSize=${SONGS_PER_PAGE}`
   ).then((data) => (data.list || []).map(convertListed));
 }
 
-function getPlaylist(playlistId) {
-  const listId = playlistId.split('_').pop();
+function getPlaylist(playlistId: string): Promise<Playlist> {
+  const listId = playlistId.split('_').pop() as string;
 
   return json(
     `${APP_HOST}/MIGUM2.0/v1.0/content/resourceinfo.do?needSimple=00&resourceType=2021&resourceId=${listId}`
@@ -102,14 +112,14 @@ function getPlaylist(playlistId) {
         id: `mgplaylist_${listId}`,
         source_url: `https://music.migu.cn/v3/music/playlist/${listId}`,
       },
-      tracks: [].concat(...lists),
+      tracks: ([] as Track[]).concat(...lists),
     };
   });
 }
 
 // The address the visitor gets is the 128k mp3; the better ones come back
 // empty. Without the channel header the answer is "channel不能为空".
-function bootstrapTrack(trackId) {
+function bootstrapTrack(trackId: string): Promise<string> {
   const contentId = trackId.slice('mgtrack_'.length);
   const url = `https://c.musicapp.migu.cn/MIGUM2.0/v2.1/content/listen-url?netType=01&resourceType=2&toneFlag=PQ&contentId=${contentId}`;
 
@@ -132,14 +142,17 @@ function bootstrapTrack(trackId) {
   });
 }
 
-function search(keyword, curpage) {
+function search(
+  keyword: string,
+  curpage: number
+): Promise<{ result: Track[]; total: number }> {
   const url = `https://app.u.nf.migu.cn/pc/resource/song/item/search/v1.0?text=${encodeURIComponent(
     keyword
   )}&pageNo=${curpage}&pageSize=20`;
 
   return json(url).then((data) => {
-    const songs = (data || []).filter((song) => !isExcerpt(song.duration));
-    const result = songs.map((song) => {
+    const songs = (data || []).filter((song: any) => !isExcerpt(song.duration));
+    const result = songs.map((song: any): Track => {
       const singer = (song.singerList || [])[0] || {};
 
       return {
@@ -163,7 +176,10 @@ function search(keyword, curpage) {
   });
 }
 
-function searchPlaylist(keyword, curpage) {
+function searchPlaylist(
+  keyword: string,
+  curpage: number
+): Promise<{ result: FoundPlaylist[]; total: number }> {
   const url = `https://app.u.nf.migu.cn/pc/v1.0/content/search_all.do?text=${encodeURIComponent(
     keyword
   )}&pageNo=${curpage}&pageSize=20&searchSwitch=${encodeURIComponent(
@@ -174,7 +190,7 @@ function searchPlaylist(keyword, curpage) {
     const found = data.songListResultData || {};
 
     return {
-      result: (found.result || []).map((item) => ({
+      result: (found.result || []).map((item: any) => ({
         cover_img_url: item.musicListPicUrl,
         title: item.name,
         id: `mgplaylist_${item.id}`,
@@ -188,7 +204,7 @@ function searchPlaylist(keyword, curpage) {
   });
 }
 
-function parseUrl(url) {
+function parseUrl(url: string): ParsedUrl | null {
   const match = /\/\/music\.migu\.cn\/v3\/music\/playlist\/([0-9]+)/.exec(url);
 
   return match ? { type: 'playlist', id: `mgplaylist_${match[1]}` } : null;
@@ -196,7 +212,7 @@ function parseUrl(url) {
 
 const meta = { name: '咪咕', platformId: 'mg', enName: 'migu' };
 
-export default {
+const provider: ProviderModule = {
   meta,
   showPlaylist,
   getPlaylist,
@@ -205,3 +221,5 @@ export default {
   searchPlaylist,
   parseUrl,
 };
+
+export default provider;

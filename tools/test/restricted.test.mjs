@@ -2,14 +2,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
+import { loadSource } from './load-state.mjs';
+
+const {
   neteaseIsRestricted,
   neteaseIsTrialClip,
   kugouIsRestricted,
   kuwoIsRestricted,
   kuwoIsPromptAudio,
   miguIsRestricted,
-} from '../../src/api/restricted.js';
+} = await loadSource('src/api/restricted.ts');
 
 // The samples below are trimmed from real responses seen on 2026-11-26.
 

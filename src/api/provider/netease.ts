@@ -3,8 +3,16 @@ import { weapi } from '../../modules/crypto';
 import request from '../request';
 import { neteaseIsRestricted, neteaseIsTrialClip } from '../restricted';
 import { isExcerpt } from '../excerpt';
+import type {
+  FoundPlaylist,
+  ParsedUrl,
+  Playlist,
+  PlaylistInfo,
+  ProviderModule,
+  Track,
+} from '../types';
 
-function requestAPI(url, data) {
+function requestAPI(url: string, data: object): Promise<any> {
   return request(url, {
     method: 'POST',
     headers: {
@@ -19,11 +27,11 @@ function requestAPI(url, data) {
       return response.json();
     });
 }
-function getSmallImageUrl(url) {
+function getSmallImageUrl(url: string): string {
   return `${url}?param=140y140`;
 }
-function showPlaylist(offset) {
-  const query = {
+function showPlaylist(offset: number): Promise<{ result: PlaylistInfo[] }> {
+  const query: { [name: string]: any } = {
     offset,
   };
   const data = {
@@ -38,7 +46,7 @@ function showPlaylist(offset) {
 
   return requestAPI(url, data)
     .then((r) => {
-      const playlists = r.playlists.map((item) => ({
+      const playlists = r.playlists.map((item: any) => ({
         cover_img_url: getSmallImageUrl(item.coverImgUrl),
         title: item.name,
         id: `neplaylist_${item.id}`,
@@ -48,7 +56,7 @@ function showPlaylist(offset) {
       return { result: playlists };
     });
 }
-function convert(songInfo, privilege) {
+function convert(songInfo: any, privilege: any): Track {
   return {
     id: `netrack_${songInfo.id}`,
     title: songInfo.name,
@@ -64,7 +72,7 @@ function convert(songInfo, privilege) {
   };
 }
 
-function getPlaylist(playlistId) {
+function getPlaylist(playlistId: string): Promise<Playlist> {
   const listId = playlistId.split('_').pop();
   const data = {
     id: listId,
@@ -88,20 +96,20 @@ function getPlaylist(playlistId) {
 
     // request all tracks to fetch song info
     // Code reference from listen1_chrome_extension
-    const track_ids = resData.playlist.trackIds.map((i) => i.id);
+    const track_ids = resData.playlist.trackIds.map((i: any) => i.id);
     const data = {
-      c: '[' + track_ids.map((id) => '{"id":' + id + '}').join(',') + ']',
+      c: '[' + track_ids.map((id: any) => '{"id":' + id + '}').join(',') + ']',
       ids: '[' + track_ids.join(',') + ']',
     };
 
     return requestAPI(tracks_url, data).then((response) => {
       // the privilege data comes in a list beside the songs
-      const privileges = {};
+      const privileges: { [songId: string]: any } = {};
 
-      (response.privileges || []).forEach((privilege) => {
+      (response.privileges || []).forEach((privilege: any) => {
         privileges[privilege.id] = privilege;
       });
-      const tracks = response.songs.map((song) =>
+      const tracks = response.songs.map((song: any) =>
         convert(song, privileges[song.id])
       );
       return { info, tracks };
@@ -109,7 +117,7 @@ function getPlaylist(playlistId) {
   });
 }
 
-function bootstrapTrack(trackId) {
+function bootstrapTrack(trackId: string): Promise<string> {
   const url =
     'https://music.163.com/weapi/song/enhance/player/url/v1?csrf_token=';
 
@@ -134,7 +142,10 @@ function bootstrapTrack(trackId) {
   });
 }
 
-function search(keyword, page) {
+function search(
+  keyword: string,
+  page: number
+): Promise<{ result: Track[]; total: number }> {
   // cloudsearch/get/web answers {"code":50000005} to this request, whatever
   // user agent it carries; cloudsearch/pc returns the same structure.
   const url = 'https://music.163.com/weapi/cloudsearch/pc';
@@ -151,8 +162,8 @@ function search(keyword, page) {
   return requestAPI(url, data).then((resData) => {
     // a search without matches has no songs field
     const tracks = (resData.result.songs || [])
-      .filter((song) => !isExcerpt(song.dt / 1000))
-      .map((song) => convert(song, song.privilege));
+      .filter((song: any) => !isExcerpt(song.dt / 1000))
+      .map((song: any) => convert(song, song.privilege));
 
     return {
       result: tracks,
@@ -163,7 +174,10 @@ function search(keyword, page) {
 
 // The playlists whose names match the keyword: the search of songs with
 // another type.
-function searchPlaylist(keyword, page) {
+function searchPlaylist(
+  keyword: string,
+  page: number
+): Promise<{ result: FoundPlaylist[]; total: number }> {
   const url = 'https://music.163.com/weapi/cloudsearch/pc';
   const data = {
     csrf_token: '',
@@ -176,7 +190,7 @@ function searchPlaylist(keyword, page) {
 
   return requestAPI(url, data).then((resData) => ({
     // a search without matches has no playlists field
-    result: (resData.result.playlists || []).map((item) => ({
+    result: (resData.result.playlists || []).map((item: any) => ({
       cover_img_url: getSmallImageUrl(item.coverImgUrl),
       title: item.name,
       id: `neplaylist_${item.id}`,
@@ -188,8 +202,8 @@ function searchPlaylist(keyword, page) {
   }));
 }
 
-function parseUrl(url) {
-  let result = null;
+function parseUrl(url: string): ParsedUrl | null {
+  let result: ParsedUrl | null = null;
 
   const r = /\/\/music\.163\.com\/playlist\/([0-9]+)/g.exec(url);
 
@@ -219,7 +233,7 @@ function parseUrl(url) {
 
 const meta = { name: '网易', platformId: 'ne', enName: 'netease' };
 
-export default {
+const provider: ProviderModule = {
   meta,
   showPlaylist,
   getPlaylist,
@@ -228,3 +242,5 @@ export default {
   searchPlaylist,
   parseUrl,
 };
+
+export default provider;

@@ -2,8 +2,11 @@ const TIMEOUT_MS = 10000;
 
 // fetch with a deadline. Every provider request goes through here so that a
 // server that never answers turns into an error instead of an endless wait.
-export default function request(url, init) {
-  return new Promise((resolve, reject) => {
+export default function request(
+  url: string,
+  init?: RequestInit
+): Promise<Response> {
+  return new Promise<Response>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`请求超时（${TIMEOUT_MS / 1000} 秒）：${url}`));
     }, TIMEOUT_MS);
@@ -24,7 +27,10 @@ export default function request(url, init) {
 // The bytes of what a GET answers, for an answer whose text is not well
 // formed: the device decodes such a text to nothing, so the text is not asked
 // for. Fails after the same deadline.
-export function requestBytes(url, headers = {}) {
+export function requestBytes(
+  url: string,
+  headers: { [name: string]: string } = {}
+): Promise<Uint8Array> {
   // outside the app there is only fetch, which can give the bytes itself
   if (typeof XMLHttpRequest === 'undefined') {
     return request(url, { headers })
@@ -32,7 +38,7 @@ export function requestBytes(url, headers = {}) {
       .then((buffer) => new Uint8Array(buffer));
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise<Uint8Array>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
     xhr.open('GET', url);

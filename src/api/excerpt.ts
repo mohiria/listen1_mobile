@@ -4,7 +4,7 @@ const SHORTEST_SONG = 30;
 
 // seconds: the length a provider reports for a song. A song whose length is
 // not known is kept.
-export function isExcerpt(seconds) {
+export function isExcerpt(seconds: unknown): boolean {
   const length = Number(seconds);
 
   return length > 0 && length < SHORTEST_SONG;

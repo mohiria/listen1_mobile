@@ -1,8 +1,8 @@
 // Reads bytes as UTF-8 and puts U+FFFD where they are not. Some answers cut
 // a text in the middle of a character, and the decoder of the device gives
 // nothing at all for such an answer.
-export function decodeUtf8(bytes) {
-  const parts = [];
+export function decodeUtf8(bytes: ArrayLike<number>): string {
+  const parts: string[] = [];
   let i = 0;
 
   while (i < bytes.length) {

@@ -2,7 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isExcerpt } from '../../src/api/excerpt.js';
+import { loadSource } from './load-state.mjs';
+
+const { isExcerpt } = await loadSource('src/api/excerpt.ts');
 
 test('a song shorter than half a minute is an excerpt', () => {
   assert.equal(isExcerpt(13), true);

@@ -1,22 +1,30 @@
 import request, { requestBytes } from '../request';
 import { decodeUtf8 } from '../utf8';
 import { isExcerpt } from '../excerpt';
+import type {
+  FoundPlaylist,
+  ParsedUrl,
+  Playlist,
+  PlaylistInfo,
+  ProviderModule,
+  Track,
+} from '../types';
 
-const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+const HTML_ENTITIES: { [name: string]: string } = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 // The names come with characters written as HTML entities, as in
 // 周杰伦&#38;陶喆.
-function htmlDecode(s) {
+function htmlDecode(s: any): any {
   if (typeof s !== 'string') {
     return s;
   }
 
   return s
-    .replace(/&#(\d+);/g, (whole, code) => String.fromCodePoint(Number(code)))
-    .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (whole, name) => HTML_ENTITIES[name]);
+    .replace(/&#(\d+);/g, (whole: string, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (whole: string, name: string) => HTML_ENTITIES[name]);
 }
 
-function qqGetImageUrl(qqimgid, imgType) {
+function qqGetImageUrl(qqimgid: any, imgType: string): string {
   if (qqimgid == null) {
     return '';
   }
@@ -40,7 +48,7 @@ function qqGetImageUrl(qqimgid, imgType) {
   return url;
 }
 
-function qqIsPlayable(song) {
+function qqIsPlayable(song: any): boolean {
   const switchFlag = song.switch.toString(2).split('');
 
   switchFlag.pop();
@@ -53,8 +61,8 @@ function qqIsPlayable(song) {
   return playFlag === '1';
 }
 
-function qqConvertSong(song) {
-  const d = {
+function qqConvertSong(song: any): Track {
+  const d: Track = {
     id: `qqtrack_${song.songmid}`,
     title: htmlDecode(song.songname),
     artist: htmlDecode(song.singer[0].name),
@@ -71,7 +79,7 @@ function qqConvertSong(song) {
   return d;
 }
 
-function showPlaylist(offset) {
+function showPlaylist(offset: number): Promise<{ result: PlaylistInfo[] }> {
   const url = `https://c.y.qq.com/splcloud/fcgi-bin/fcg_get_diss_by_tag.fcg?picmid=1&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0&categoryId=10000000&sortId=5&sin=${offset}&ein=${29 +
     offset}`;
 
@@ -82,7 +90,7 @@ function showPlaylist(offset) {
   })
     .then(response => response.json())
     .then(r => {
-      const playlists = r.data.list.map(item => ({
+      const playlists = r.data.list.map((item: any) => ({
         cover_img_url: item.imgurl,
         title: item.dissname,
         id: `qqplaylist_${item.dissid}`,
@@ -93,7 +101,10 @@ function showPlaylist(offset) {
     });
 }
 
-function search(keyword, page) {
+function search(
+  keyword: string,
+  page: number
+): Promise<{ result: Track[]; total: number }> {
   const url =
     `${'http://i.y.qq.com/s.music/fcgi-bin/search_for_qq_cp?' +
       'g_tk=938407465&uin=0&format=jsonp&inCharset=utf-8' +
@@ -113,15 +124,18 @@ function search(keyword, page) {
       const text = textData.slice('jsonp4('.length, -')'.length);
       const jsonData = JSON.parse(text);
       const tracks = jsonData.data.song.list
-        .filter(item => !isExcerpt(item.interval))
-        .map(item => qqConvertSong(item));
+        .filter((item: any) => !isExcerpt(item.interval))
+        .map((item: any) => qqConvertSong(item));
 
       return { result: tracks, total: jsonData.data.song.totalnum };
     });
 }
 
 // The playlists whose names match the keyword.
-function searchPlaylist(keyword, page) {
+function searchPlaylist(
+  keyword: string,
+  page: number
+): Promise<{ result: FoundPlaylist[]; total: number }> {
   // its pages count from 0
   const url =
     'https://c.y.qq.com/soso/fcgi-bin/client_music_search_songlist?' +
@@ -142,7 +156,7 @@ function searchPlaylist(keyword, page) {
       const list = (r.data && r.data.list) || [];
 
       return {
-        result: list.map(item => ({
+        result: list.map((item: any) => ({
           cover_img_url: item.imgurl,
           title: htmlDecode(item.dissname),
           // docid is not the id the playlist is opened with
@@ -156,7 +170,7 @@ function searchPlaylist(keyword, page) {
     });
 }
 
-function getPlaylist(playlistId) {
+function getPlaylist(playlistId: string): Promise<Playlist> {
   const listId = playlistId.split('_').pop();
   const targetUrl =
     `${'http://i.y.qq.com/qzone-music/fcg-bin/fcg_ucc_getcdinfo_' +
@@ -183,7 +197,7 @@ function getPlaylist(playlistId) {
         source_url: `http://y.qq.com/#type=taoge&id=${listId}`,
       };
 
-      const tracks = jsonData.cdlist[0].songlist.map(item =>
+      const tracks = jsonData.cdlist[0].songlist.map((item: any) =>
         qqConvertSong(item)
       );
 
@@ -196,7 +210,7 @@ function getPlaylist(playlistId) {
     });
 }
 
-function bootstrapTrack(trackId) {
+function bootstrapTrack(trackId: string): Promise<string> {
   const songId = trackId.slice('qqtrack_'.length);
   const targetUrl =
     `${'https://u.y.qq.com/cgi-bin/musicu.fcg?loginUin=0&' +
@@ -228,8 +242,8 @@ function bootstrapTrack(trackId) {
     });
 }
 
-function parseUrl(url) {
-  let result = null;
+function parseUrl(url: string): ParsedUrl | null {
+  let result: ParsedUrl | null = null;
   let match = /\/\/y.qq.com\/n\/yqq\/playlist\/([0-9]+)/.exec(url);
 
   if (match != null) {
@@ -265,7 +279,7 @@ function parseUrl(url) {
 }
 const meta = { name: 'QQ', platformId: 'qq', enName: 'qq' };
 
-export default {
+const provider: ProviderModule = {
   meta,
   showPlaylist,
   getPlaylist,
@@ -275,3 +289,5 @@ export default {
   searchPlaylist,
   // lyric: qq_lyric,
 };
+
+export default provider;

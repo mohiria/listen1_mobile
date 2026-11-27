@@ -2,7 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { decodeUtf8 } from '../../src/api/utf8.js';
+import { loadSource } from './load-state.mjs';
+
+const { decodeUtf8 } = await loadSource('src/api/utf8.ts');
 
 const bytes = (text) => new TextEncoder().encode(text);
 

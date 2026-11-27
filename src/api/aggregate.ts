@@ -1,7 +1,18 @@
 // Searches every provider at once and shows what they find as one list, in
 // which a song that several providers have appears once. Another version of
 // a song (live, remix, excerpt) is a song of its own here.
-import { isSameVersion } from './match.js';
+import { isSameVersion } from './match';
+import type { Track } from './types';
+
+// What is searched for: songs or playlists.
+type Item = { id: string };
+
+type Merge<T> = (lists: T[][], shown: T[]) => T[];
+
+type SearchedProvider<T> = {
+  name: string;
+  search(keyword: string, page: number): Promise<{ result: T[]; total: number }>;
+};
 
 // lists: one list of songs per provider, in the order the providers are
 // preferred. shown: the songs already on show.
@@ -10,11 +21,11 @@ import { isSameVersion } from './match.js';
 // each provider. Of the copies of one song the one that is not restricted is
 // kept, and of those the one from the provider preferred most; it stands
 // where the first copy stood. A song already on show is left as it is.
-export function mergeSongs(lists, shown = []) {
-  const same = (a, b) => a.id === b.id || isSameVersion(a, b);
-  const added = [];
+export function mergeSongs(lists: Track[][], shown: Track[] = []): Track[] {
+  const same = (a: Track, b: Track) => a.id === b.id || isSameVersion(a, b);
+  const added: Track[] = [];
   // for each song added, the place of its provider in the order
-  const ranks = [];
+  const ranks: number[] = [];
   const longest = Math.max(0, ...lists.map((list) => list.length));
 
   for (let i = 0; i < longest; i += 1) {
@@ -47,8 +58,8 @@ export function mergeSongs(lists, shown = []) {
 
 // Takes from each list in turn. For what has no copies in other providers,
 // such as playlists.
-export function takeInTurn(lists) {
-  const added = [];
+export function takeInTurn<T>(lists: T[][]): T[] {
+  const added: T[] = [];
   const longest = Math.max(0, ...lists.map((list) => list.length));
 
   for (let i = 0; i < longest; i += 1) {
@@ -73,16 +84,22 @@ export function takeInTurn(lists) {
 //                             done: no provider has more
 // It never rejects. merge(lists, shown) puts the pages of the providers into
 // one list; tracks holds whatever was searched for.
-export function createAggregateSearch(providers, keyword, merge = mergeSongs) {
+export function createAggregateSearch<T extends Item = Track>(
+  providers: SearchedProvider<T>[],
+  keyword: string,
+  merge: Merge<T> = mergeSongs as unknown as Merge<T>
+): { more(): Promise<{ tracks: T[]; failed: string[]; done: boolean }> } {
+  type State = (typeof states)[number];
+
   const states = providers.map((provider) => ({
     provider,
     page: 1,
-    seen: new Set(),
+    seen: new Set<string>(),
     ended: false,
   }));
-  let tracks = [];
+  let tracks: T[] = [];
 
-  async function pageOf(state) {
+  async function pageOf(state: State): Promise<T[] | null> {
     if (state.ended) {
       return [];
     }
