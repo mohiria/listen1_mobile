@@ -268,3 +268,82 @@ test('a song from a provider that is not known is looked for everywhere', async 
 
   assert.deepEqual(result, { url: 'http://qq/9', source: 'qq', switched: true });
 });
+
+test('the same version is preferred to another version listed before it', async () => {
+  const netease = provider('netease', 'ne', {});
+  const qq = provider(
+    'qq',
+    'qq',
+    { qqtrack_1: 'http://qq/1', qqtrack_2: 'http://qq/2' },
+    {
+      catalog: [
+        song('qqtrack_1', '晴天 (Live)', '周杰伦'),
+        song('qqtrack_2', '晴天', '周杰伦'),
+      ],
+    }
+  );
+  const resolveTrack = createResolver([netease, qq]);
+
+  const result = await resolveTrack(song('netrack_1', '晴天', '周杰伦', true));
+
+  assert.equal(result.url, 'http://qq/2');
+});
+
+test('the same version at a later provider is preferred to another version at an earlier one', async () => {
+  const kugou = provider('kugou', 'kg', {});
+  const netease = provider(
+    'netease',
+    'ne',
+    { netrack_9: 'http://ne/9' },
+    { catalog: [song('netrack_9', '晴天 (13秒片段)', '周杰伦')] }
+  );
+  const qq = provider(
+    'qq',
+    'qq',
+    { qqtrack_9: 'http://qq/9' },
+    { catalog: [song('qqtrack_9', '晴天', '周杰伦')] }
+  );
+  const resolveTrack = createResolver([netease, qq, kugou]);
+
+  const result = await resolveTrack(song('kgtrack_1', '晴天', '周杰伦', true));
+
+  assert.equal(result.source, 'qq');
+});
+
+test('another version is played when no provider has the same one', async () => {
+  const netease = provider('netease', 'ne', {});
+  const qq = provider(
+    'qq',
+    'qq',
+    { qqtrack_9: 'http://qq/9' },
+    { catalog: [song('qqtrack_9', '稻香', '周杰伦')] }
+  );
+  const resolveTrack = createResolver([netease, qq]);
+
+  const result = await resolveTrack(
+    song('netrack_1', '稻香 (2008 魔杰座)', '周杰伦', true)
+  );
+
+  assert.equal(result.url, 'http://qq/9');
+});
+
+test('another version is played when the same version has no address', async () => {
+  const netease = provider('netease', 'ne', {});
+  const qq = provider(
+    'qq',
+    'qq',
+    { qqtrack_2: 'http://qq/2' },
+    {
+      catalog: [
+        song('qqtrack_1', '晴天', '周杰伦'),
+        song('qqtrack_2', '晴天 (Live)', '周杰伦'),
+      ],
+    }
+  );
+  const resolveTrack = createResolver([netease, qq]);
+
+  const result = await resolveTrack(song('netrack_1', '晴天', '周杰伦', true));
+
+  assert.equal(result.url, 'http://qq/2');
+  assert.deepEqual(qq.calls.bootstrapTrack, ['qqtrack_1', 'qqtrack_2']);
+});

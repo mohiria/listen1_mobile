@@ -1,7 +1,8 @@
 // Finds a playable address for a song: from its own provider when that one
 // gives it out, otherwise from the first other provider that has the same
-// song and gives its address out.
-import { isSameSong, searchKeyword } from './match.js';
+// song and gives its address out. The same version of the song is looked for
+// at every provider before another version (live, remix) is settled for.
+import { isSameSong, isSameVersion, searchKeyword } from './match.js';
 
 // providers: [{ name, prefix, search(keyword), bootstrapTrack(trackId) }], in
 // the order they are preferred when switching. prefix is what the ids of the
@@ -31,15 +32,23 @@ export function createResolver(providers) {
       }
     }
 
-    async function matchAt(provider, keyword) {
+    // the same version of the song at the provider, then another version
+    async function matchesAt(provider, keyword) {
       try {
-        const songs = await provider.search(keyword);
+        const songs = (await provider.search(keyword)).filter(
+          (song) => !song.disabled
+        );
 
         answers += 1;
 
-        return songs.find((song) => !song.disabled && isSameSong(track, song));
+        const exact = songs.find((song) => isSameVersion(track, song));
+
+        return [
+          exact,
+          songs.find((song) => song !== exact && isSameSong(track, song)),
+        ];
       } catch (error) {
-        return undefined;
+        return [];
       }
     }
 
@@ -70,18 +79,22 @@ export function createResolver(providers) {
     const others = providers.filter((provider) => provider !== own);
     const keyword = searchKeyword(track);
     const matches = await Promise.all(
-      others.map((provider) => matchAt(provider, keyword))
+      others.map((provider) => matchesAt(provider, keyword))
     );
 
-    for (let i = 0; i < others.length; i += 1) {
-      if (matches[i] !== undefined) {
-        // eslint-disable-next-line no-await-in-loop
-        const url = await addressOf(others[i], matches[i].id);
+    for (let pick = 0; pick < 2; pick += 1) {
+      for (let i = 0; i < others.length; i += 1) {
+        const song = matches[i][pick];
 
-        if (url !== '') {
-          remembered.set(track.id, { provider: others[i], song: matches[i] });
+        if (song !== undefined) {
+          // eslint-disable-next-line no-await-in-loop
+          const url = await addressOf(others[i], song.id);
 
-          return { url, source: others[i].name, switched: true };
+          if (url !== '') {
+            remembered.set(track.id, { provider: others[i], song });
+
+            return { url, source: others[i].name, switched: true };
+          }
         }
       }
     }
