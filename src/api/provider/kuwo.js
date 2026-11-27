@@ -2,6 +2,7 @@
 import queryString from 'query-string';
 import request from '../request';
 import { kuwoIsRestricted, kuwoIsPromptAudio } from '../restricted';
+import { isExcerpt } from '../excerpt';
 
 function getSmallImageUrl(url) {
   return `${url}?param=140y140`;
@@ -206,7 +207,8 @@ async function search(keyword, curpage) {
   return request(target_url)
     .then((response) => response.json())
     .then((data) => {
-      const tracks = data.abslist.map((item) => {
+      const songs = data.abslist.filter((item) => !isExcerpt(item.DURATION));
+      const tracks = songs.map((item) => {
         const musicrid = item.MUSICRID.split('_')[1];
 
         return {

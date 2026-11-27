@@ -1,6 +1,7 @@
 import queryString from 'query-string';
 import request from '../request';
 import {kugouIsRestricted} from '../restricted';
+import { isExcerpt } from '../excerpt';
 
 function getSmallImageUrl(url) {
   return `${url}?param=140y140`;
@@ -333,7 +334,9 @@ async function search(keyword, curpage) {
     .then((response) => response.json())
     .then(({data}) => {
       return {
-        result: data.lists.map(kg_convert_song),
+        result: data.lists
+          .filter((song) => !isExcerpt(song.Duration))
+          .map(kg_convert_song),
         total: data.total,
       };
     });

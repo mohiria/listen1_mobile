@@ -1,4 +1,5 @@
 import request from '../request';
+import { isExcerpt } from '../excerpt';
 
 function htmlDecode(s) {
   return s;
@@ -100,7 +101,9 @@ function search(keyword, page) {
     .then(textData => {
       const text = textData.slice('jsonp4('.length, -')'.length);
       const jsonData = JSON.parse(text);
-      const tracks = jsonData.data.song.list.map(item => qqConvertSong(item));
+      const tracks = jsonData.data.song.list
+        .filter(item => !isExcerpt(item.interval))
+        .map(item => qqConvertSong(item));
 
       return { result: tracks, total: jsonData.data.song.totalnum };
     });

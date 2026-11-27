@@ -2,6 +2,7 @@ import queryString from 'query-string';
 import { weapi } from '../../modules/crypto';
 import request from '../request';
 import { neteaseIsRestricted, neteaseIsTrialClip } from '../restricted';
+import { isExcerpt } from '../excerpt';
 
 function requestAPI(url, data) {
   return request(url, {
@@ -149,9 +150,9 @@ function search(keyword, page) {
 
   return requestAPI(url, data).then((resData) => {
     // a search without matches has no songs field
-    const tracks = (resData.result.songs || []).map((song) =>
-      convert(song, song.privilege)
-    );
+    const tracks = (resData.result.songs || [])
+      .filter((song) => !isExcerpt(song.dt / 1000))
+      .map((song) => convert(song, song.privilege));
 
     return {
       result: tracks,
