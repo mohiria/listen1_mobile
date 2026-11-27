@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import ToastHost from './components/Toast';
 import Navigation from './Navigation';
 
 type ErrorScreenState = { error: Error | null };
@@ -48,6 +49,7 @@ export default function App() {
     <SafeAreaProvider>
       <ErrorScreen>
         <Navigation />
+        <ToastHost />
       </ErrorScreen>
     </SafeAreaProvider>
   );

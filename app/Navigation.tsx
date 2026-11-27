@@ -1,5 +1,8 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  BottomTabBar,
+  createBottomTabNavigator,
+} from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -7,6 +10,7 @@ import {
 } from '@react-navigation/native-stack';
 
 import type { PlaylistInfo } from '../src/api/client';
+import TempPlayerBar from './components/TempPlayerBar';
 import AboutScreen from './screens/AboutScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
@@ -105,6 +109,12 @@ export default function Navigation() {
   return (
     <NavigationContainer theme={navigationTheme(palette)}>
       <Tab.Navigator
+        tabBar={props => (
+          <>
+            <TempPlayerBar />
+            <BottomTabBar {...props} />
+          </>
+        )}
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: palette.accentColor,

@@ -1,7 +1,12 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
-    "types": []
+    "types": [],
+    "paths": {
+      "@rntp/player": [
+        "./node_modules/@rntp/player/lib/typescript/src/index.d.ts"
+      ]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]
