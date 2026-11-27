@@ -119,6 +119,13 @@ export function registerPlayback() {
 
     TrackPlayer.registerRemoteHandlers({
       play: () => {
+        // the player pauses by itself when headphones are taken off, and the
+        // state layer is not told; putting them back on asks to play
+        if (store.getState().playerState.isPlaying) {
+          TrackPlayer.play();
+
+          return;
+        }
         store.dispatch(play());
       },
       pause: () => {
