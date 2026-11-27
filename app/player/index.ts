@@ -20,6 +20,9 @@ import {
 } from './driver';
 
 const TICK_MS = 2000;
+// How long the player must have been silent before the state layer is told
+// that it paused; between two songs it is silent for a moment.
+const SETTLE_MS = 1000;
 
 const toMediaItem = (item: PlayerItem): MediaItem => ({
   mediaId: item.mediaId,
@@ -30,9 +33,14 @@ const toMediaItem = (item: PlayerItem): MediaItem => ({
   artworkUrl: item.artwork,
 });
 
+// True from the loading of a song until it is heard: the player is silent
+// then without having paused.
+let starting = false;
+
 // The native queue holds the current item and at most the one after it.
 const port: PlayerPort = {
   load(item) {
+    starting = true;
     const length = TrackPlayer.getQueue().length;
 
     if (length === 0) {
@@ -90,6 +98,39 @@ function start() {
     if (event.state === PlaybackState.Ended) {
       driver.onEnded();
     }
+  });
+  let settling: ReturnType<typeof setTimeout> | null = null;
+
+  // The player pauses by itself when headphones are taken off, when another
+  // app takes the sound or when a phone call comes in, and goes on by itself
+  // when the call ends. The buttons of the app follow the state layer.
+  TrackPlayer.addEventListener(Event.IsPlayingChanged, event => {
+    if (settling !== null) {
+      clearTimeout(settling);
+      settling = null;
+    }
+    if (event.playing) {
+      starting = false;
+      if (TrackPlayer.isPlaying()) {
+        driver.onPlayingChanged(true);
+      }
+
+      return;
+    }
+    if (starting) {
+      return;
+    }
+    settling = setTimeout(() => {
+      settling = null;
+      // a paused player reports ready; buffering, ended and error are not
+      // pauses
+      if (
+        !TrackPlayer.isPlaying() &&
+        TrackPlayer.getPlaybackState() === PlaybackState.Ready
+      ) {
+        driver.onPlayingChanged(false);
+      }
+    }, SETTLE_MS);
   });
   TrackPlayer.addEventListener(Event.PlaybackError, () => {
     // an item waiting in the queue can fail too; only the current one counts

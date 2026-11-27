@@ -346,3 +346,61 @@ test('the provider a song is played from is recorded when it is not its own', as
   await settle();
   assert.equal(t.playerState().playingSource, null);
 });
+
+test('a pause made by the player itself reaches the state layer', async () => {
+  const t = setup();
+
+  t.store.dispatch(actions.playTrackInPlaylist({ track: a, playlist }));
+  await settle();
+
+  // headphones were taken off: the player stopped without being told
+  t.driver.onPlayingChanged(false);
+  assert.equal(t.playerState().isPlaying, false);
+  // it is paused already and is not told again
+  assert.equal(t.did('pause').length, 0);
+
+  t.store.dispatch(actions.play());
+  assert.equal(t.did('play').length, 2);
+});
+
+test('a resume made by the player itself reaches the state layer', async () => {
+  const t = setup();
+
+  t.store.dispatch(actions.playTrackInPlaylist({ track: a, playlist }));
+  await settle();
+  t.driver.onPlayingChanged(false);
+
+  // a phone call ended and the player went on
+  t.driver.onPlayingChanged(true);
+  assert.equal(t.playerState().isPlaying, true);
+  assert.equal(t.did('play').length, 1);
+
+  t.store.dispatch(actions.pause());
+  assert.equal(t.did('pause').length, 1);
+});
+
+test('the player doing as it was told changes nothing', async () => {
+  const t = setup();
+
+  t.store.dispatch(actions.playTrackInPlaylist({ track: a, playlist }));
+  await settle();
+  t.driver.onPlayingChanged(true);
+  assert.equal(t.playerState().isPlaying, true);
+
+  t.store.dispatch(actions.pause());
+  t.driver.onPlayingChanged(false);
+  assert.equal(t.playerState().isPlaying, false);
+  assert.equal(t.did('pause').length, 1);
+});
+
+test('what the player reports while a song is being resolved is ignored', async () => {
+  const t = setup({ answers: { qqtrack_b: 'wait' } });
+
+  t.store.dispatch(actions.playTrackInPlaylist({ track: a, playlist }));
+  await settle();
+  t.store.dispatch(actions.playTrackInPlaylist({ track: b, playlist }));
+  await settle();
+
+  t.driver.onPlayingChanged(false);
+  assert.equal(t.playerState().isPlaying, true);
+});

@@ -5,6 +5,7 @@ import type { ResolveResult, Track } from '../../src/api/client';
 import {
   loadFail,
   nextTrack,
+  pause,
   play,
   updatePlayer,
 } from '../../src/redux/actions';
@@ -58,6 +59,9 @@ export type PlaybackDriver = {
   onEnded(): void;
   // The current item failed while playing.
   onError(): void;
+  // The player stopped or went on by itself: headphones were taken off,
+  // another app took the sound, a phone call came in or ended.
+  onPlayingChanged(playing: boolean): void;
   stop(): void;
 };
 
@@ -355,6 +359,16 @@ export function createPlaybackDriver({
       dropNext();
       notify(`「${track.title}」播放失败`);
       store.dispatch(loadFail());
+    },
+
+    onPlayingChanged(playing) {
+      // while a song is being resolved the player still holds the last one
+      if (!loaded || playerState().isPlaying === playing) {
+        return;
+      }
+      // the player has done it already and is not told again
+      lastPlaying = playing;
+      store.dispatch(playing ? play() : pause());
     },
 
     stop() {
