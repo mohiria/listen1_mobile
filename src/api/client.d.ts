@@ -41,4 +41,6 @@ export default class Client {
     playlistId: string
   ): Promise<{ info: PlaylistInfo; tracks: Track[] }>;
   static resolveTrack(track: Track): Promise<ResolveResult>;
+  // The playlist a link shared from a provider points to, if it is one.
+  static parseUrl(url: string): { type: string; id: string } | null;
 }

@@ -12,9 +12,12 @@ import {
 import type { PlaylistInfo } from '../src/api/client';
 import MiniPlayer from './components/MiniPlayer';
 import AboutScreen from './screens/AboutScreen';
-import PlaceholderScreen from './screens/PlaceholderScreen';
+import CreatePlaylistScreen from './screens/CreatePlaylistScreen';
+import ImportPlaylistScreen from './screens/ImportPlaylistScreen';
+import MineScreen from './screens/MineScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
+import ReorderScreen from './screens/ReorderScreen';
 import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { navigationTheme, usePalette } from './theme';
@@ -24,7 +27,14 @@ export type PlaylistsStackParamList = {
   Playlist: { info: PlaylistInfo };
 };
 export type SearchStackParamList = { Search: undefined };
-export type MineStackParamList = { Mine: undefined };
+export type MineStackParamList = {
+  Mine: undefined;
+  Playlist: { info: PlaylistInfo };
+  CreatePlaylist: undefined;
+  ImportPlaylist: undefined;
+  // the playlist of mine whose songs are edited; without it, my playlists
+  Reorder: { playlistId?: string };
+};
 export type SettingsStackParamList = { Settings: undefined; About: undefined };
 
 const Tab = createBottomTabNavigator();
@@ -79,8 +89,28 @@ function MineTab() {
     <MineStack.Navigator screenOptions={useStackOptions()}>
       <MineStack.Screen
         name="Mine"
-        component={PlaceholderScreen}
+        component={MineScreen}
         options={{ title: '我的' }}
+      />
+      <MineStack.Screen
+        name="Playlist"
+        component={PlaylistScreen}
+        options={{ title: '' }}
+      />
+      <MineStack.Screen
+        name="CreatePlaylist"
+        component={CreatePlaylistScreen}
+        options={{ title: '新建歌单' }}
+      />
+      <MineStack.Screen
+        name="ImportPlaylist"
+        component={ImportPlaylistScreen}
+        options={{ title: '导入歌单' }}
+      />
+      <MineStack.Screen
+        name="Reorder"
+        component={ReorderScreen}
+        options={{ title: '编辑歌单' }}
       />
     </MineStack.Navigator>
   );

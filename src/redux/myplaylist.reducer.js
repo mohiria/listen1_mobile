@@ -134,9 +134,11 @@ export const myPlaylistReducer = (state = defaultmyPlaylistState, action) => {
 
   switch (action.type) {
     case TYPE.CREATE_MY_PLAYLIST:
-      newPlaylist = { ...action.playlist };
-
-      newPlaylist.info.id = `myplaylist_${guid()}`;
+      // a copy: the playlist handed in is often one a screen still shows
+      newPlaylist = {
+        ...action.playlist,
+        info: { ...action.playlist.info, id: `myplaylist_${guid()}` },
+      };
 
       return {
         ...state,

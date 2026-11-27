@@ -1,4 +1,4 @@
-import type { Track } from '../api/client';
+import type { PlaylistInfo, Track } from '../api/client';
 
 export type PlayerState = {
   // 0 loop, 1 shuffle, 2 repeat one
@@ -9,16 +9,28 @@ export type PlayerState = {
   playingSource: { id: string; source: string } | null;
 };
 
+// A playlist of mine with its songs.
+export type MyPlaylist = { info: PlaylistInfo; tracks: Track[] };
+
+export type MyPlaylistState = {
+  // the ids of the songs in 我喜欢的音乐
+  myFavoriteIds: { [trackId: string]: 1 | undefined };
+  // my playlists in the order they are shown; 我喜欢的音乐 is the first
+  playlists: PlaylistInfo[];
+  myPlaylistDict: { [playlistId: string]: MyPlaylist | undefined };
+};
+
 export type RootState = {
   playerState: PlayerState;
+  myPlaylistState: MyPlaylistState;
   settingState: { language: string; theme: string };
   modalState: {
     // the full-screen player
     isOpen: boolean;
     // the sheet; liteType and item keep their last values while it is closed
     isLiteOpen: boolean;
-    liteType: '' | 'nowplaying' | 'track';
-    // the song the menu is about; only meaningful when liteType is 'track'
+    liteType: '' | 'nowplaying' | 'track' | 'add_to_playlist';
+    // the song the sheet is about; not meaningful when liteType is 'nowplaying'
     item: Track;
   };
 };

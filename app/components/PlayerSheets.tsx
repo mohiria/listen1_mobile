@@ -1,5 +1,6 @@
-// The two sheets that come up from the bottom: the play queue, and the menu
-// of one song. The state layer says which one is open.
+// The sheets that come up from the bottom: the play queue, the menu of one
+// song, and my playlists to put that song into. The state layer says which
+// one is open.
 import React from 'react';
 import {
   FlatList,
@@ -12,16 +13,19 @@ import {
 import { MaterialIcons } from '@react-native-vector-icons/material-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { Track } from '../../src/api/client';
+import type { PlaylistInfo, Track } from '../../src/api/client';
 import {
   addNextTrack,
+  addToMyPlaylist,
   closeModalLite,
+  openModalLite,
   playTrack,
   removeTrack,
 } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import { usePalette } from '../theme';
 import { useStore } from '../useStore';
+import Cover from './Cover';
 import ListStatus from './ListStatus';
 import Sheet from './Sheet';
 import { showToast } from './Toast';
@@ -87,6 +91,12 @@ function Queue() {
 function TrackMenu() {
   const palette = usePalette();
   const track = useStore(state => state.modalState.item);
+  const nowPlaying = useStore(state => state.playerState.nowplayingTrack);
+  // the song that is playing cannot be put after itself
+  const current =
+    nowPlaying !== null &&
+    nowPlaying !== undefined &&
+    nowPlaying.id === track.id;
 
   return (
     <>
@@ -96,24 +106,74 @@ function TrackMenu() {
       >
         {track.title}
       </Text>
+      {current ? null : (
+        <Pressable
+          style={styles.option}
+          onPress={() => {
+            store.dispatch(addNextTrack(track));
+            close();
+            showToast('已加入下一首播放');
+          }}
+        >
+          <MaterialIcons
+            name="play-circle-outline"
+            size={24}
+            color={palette.primaryColor}
+          />
+          <Text style={[styles.optionText, { color: palette.primaryColor }]}>
+            下一首播放
+          </Text>
+        </Pressable>
+      )}
       <Pressable
         style={styles.option}
-        onPress={() => {
-          store.dispatch(addNextTrack(track));
-          close();
-          showToast('已加入下一首播放');
-        }}
+        onPress={() =>
+          store.dispatch(
+            openModalLite({ type: 'add_to_playlist', item: track })
+          )
+        }
       >
-        <MaterialIcons
-          name="play-circle-outline"
-          size={24}
-          color={palette.primaryColor}
-        />
+        <MaterialIcons name="add-box" size={24} color={palette.primaryColor} />
         <Text style={[styles.optionText, { color: palette.primaryColor }]}>
-          下一首播放
+          收藏到歌单
         </Text>
       </Pressable>
       <View style={styles.fill} />
+      <CloseButton />
+    </>
+  );
+}
+
+// My playlists; the one tapped gets the song.
+function AddToPlaylist() {
+  const palette = usePalette();
+  const track = useStore(state => state.modalState.item);
+  const playlists = useStore(state => state.myPlaylistState.playlists);
+
+  const add = (playlist: PlaylistInfo) => {
+    store.dispatch(addToMyPlaylist({ track, playlist }));
+    close();
+    showToast('添加歌单完成');
+  };
+
+  return (
+    <>
+      <FlatList
+        style={styles.fill}
+        data={playlists}
+        keyExtractor={info => info.id}
+        renderItem={({ item }) => (
+          <Pressable style={styles.playlist} onPress={() => add(item)}>
+            <Cover url={item.cover_img_url} size={40} />
+            <Text
+              numberOfLines={1}
+              style={[styles.playlistTitle, { color: palette.primaryColor }]}
+            >
+              {item.title}
+            </Text>
+          </Pressable>
+        )}
+      />
       <CloseButton />
     </>
   );
@@ -125,7 +185,7 @@ export default function PlayerSheets() {
   const type = useStore(state => state.modalState.liteType);
   const insets = useSafeAreaInsets();
   const screen = useWindowDimensions();
-  const wanted = type === 'track' ? 160 : 500;
+  const wanted = type === 'track' ? 210 : 500;
 
   return (
     <Sheet
@@ -135,6 +195,7 @@ export default function PlayerSheets() {
     >
       {type === 'nowplaying' ? <Queue /> : null}
       {type === 'track' ? <TrackMenu /> : null}
+      {type === 'add_to_playlist' ? <AddToPlaylist /> : null}
     </Sheet>
   );
 }
@@ -155,4 +216,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   optionText: { fontSize: 14, marginLeft: 15 },
+  playlist: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: 56,
+    paddingHorizontal: 15,
+  },
+  playlistTitle: { flex: 1, fontSize: 14, marginLeft: 12 },
 });

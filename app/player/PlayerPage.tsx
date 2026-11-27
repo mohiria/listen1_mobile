@@ -17,10 +17,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Client from '../../src/api/client';
 import {
+  addToMyFavorite,
   changePlayMode,
   nextTrack,
   openModalLite,
   prevTrack,
+  removeFromMyFavorite,
   toggleModal,
   togglePlay,
 } from '../../src/redux/actions';
@@ -133,6 +135,9 @@ function ProgressRow({ palette }: { palette: Palette }) {
 type IconName =
   | (typeof MODE_ICONS)[number]
   | 'keyboard-arrow-down'
+  | 'more-horiz'
+  | 'favorite'
+  | 'favorite-border'
   | 'skip-previous'
   | 'skip-next'
   | 'pause-circle-outline'
@@ -171,6 +176,12 @@ function PlayerContent() {
   const playMode = useStore(state => state.playerState.playMode);
   const source = useStore(state => getPlayingSource(state.playerState));
   const hasTrack = track !== null && track !== undefined;
+  const favourite = useStore(
+    state =>
+      track !== null &&
+      track !== undefined &&
+      state.myPlaylistState.myFavoriteIds[track.id] !== undefined
+  );
   const color = palette.primaryColor;
   const coverSize = Math.min(
     300,
@@ -204,6 +215,17 @@ function PlayerContent() {
           color={color}
           onPress={() => store.dispatch(toggleModal())}
         />
+        {track !== null && track !== undefined ? (
+          <IconButton
+            name="more-horiz"
+            size={30}
+            box={50}
+            color={color}
+            onPress={() =>
+              store.dispatch(openModalLite({ type: 'track', item: track }))
+            }
+          />
+        ) : null}
       </View>
 
       {hasTrack && track.img_url ? (
@@ -222,18 +244,33 @@ function PlayerContent() {
       )}
 
       <View style={styles.info}>
-        <Text numberOfLines={1} style={[styles.title, { color }]}>
-          {hasTrack ? track.title : 'Listen 1'}
-        </Text>
-        {hasTrack ? (
-          <Text
-            numberOfLines={1}
-            style={[styles.artist, { color: palette.secondaryColor }]}
-          >
-            {source !== ''
-              ? `${track.artist} · 来自${Client.getProviderName(source)}`
-              : track.artist}
+        <View style={styles.infoText}>
+          <Text numberOfLines={1} style={[styles.title, { color }]}>
+            {hasTrack ? track.title : 'Listen 1'}
           </Text>
+          {hasTrack ? (
+            <Text
+              numberOfLines={1}
+              style={[styles.artist, { color: palette.secondaryColor }]}
+            >
+              {source !== ''
+                ? `${track.artist} · 来自${Client.getProviderName(source)}`
+                : track.artist}
+            </Text>
+          ) : null}
+        </View>
+        {track !== null && track !== undefined ? (
+          <IconButton
+            name={favourite ? 'favorite' : 'favorite-border'}
+            size={30}
+            box={50}
+            color={favourite ? palette.accentColor : palette.secondaryColor}
+            onPress={() =>
+              store.dispatch(
+                favourite ? removeFromMyFavorite(track) : addToMyFavorite(track)
+              )
+            }
+          />
         ) : null}
       </View>
 
@@ -334,12 +371,16 @@ const styles = StyleSheet.create({
   },
   cover: { borderRadius: 20 },
   info: {
+    alignItems: 'flex-start',
     alignSelf: 'stretch',
+    flexDirection: 'row',
     flexGrow: 1,
-    marginHorizontal: 30,
+    marginLeft: 30,
+    marginRight: 20,
     marginTop: 20,
     minHeight: 70,
   },
+  infoText: { flex: 1 },
   title: { fontSize: 24, lineHeight: 40 },
   artist: { fontSize: 16 },
   progress: {

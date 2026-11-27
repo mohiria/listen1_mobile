@@ -276,3 +276,47 @@ test('exported data restores the play queue, favourites and my playlists', () =>
     [b.id]
   );
 });
+
+test('a playlist saved as mine is a copy and the original keeps its id', () => {
+  const info = { id: 'neplaylist_1', title: 'shown on a screen' };
+  const state = after(actions.createMyPlaylist({ info, tracks: [a, b] }));
+  const mine = state.myPlaylistState.playlists[1];
+
+  assert.equal(info.id, 'neplaylist_1');
+  assert.match(mine.id, /^myplaylist_/);
+  assert.equal(mine.title, 'shown on a screen');
+  assert.deepEqual(
+    state.myPlaylistState.myPlaylistDict[mine.id].tracks.map((t) => t.id),
+    [a.id, b.id]
+  );
+});
+
+test('my playlists can be put in another order and taken out', () => {
+  const named = (title) =>
+    actions.createMyPlaylist({ info: { id: '', title }, tracks: [] });
+  const made = after(named('one'), named('two'), named('three'));
+  const [, one, , three] = made.myPlaylistState.playlists;
+  const state = reducer(made, actions.saveMyPlaylists([three, one]));
+
+  // 我喜欢的音乐 stays first and cannot be taken out
+  assert.deepEqual(
+    state.myPlaylistState.playlists.map((info) => info.title),
+    ['我喜欢的音乐', 'three', 'one']
+  );
+  assert.deepEqual(Object.keys(state.myPlaylistState.myPlaylistDict).sort(), [
+    'myplaylist_favorite',
+    one.id,
+    three.id,
+  ].sort());
+});
+
+test('editing the favourites keeps the hearts in step', () => {
+  const made = after(actions.addToMyFavorite(a), actions.addToMyFavorite(b));
+  const favourites = made.myPlaylistState.myPlaylistDict.myplaylist_favorite;
+  const state = reducer(
+    made,
+    actions.editMyPlaylist({ info: favourites.info, tracks: [b] })
+  );
+
+  assert.deepEqual(Object.keys(state.myPlaylistState.myFavoriteIds), [b.id]);
+});

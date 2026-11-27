@@ -23,8 +23,31 @@ export function addNextTrack(track: Track): { type: string };
 export function removeTrack(track: Track): { type: string };
 // Opens or closes the full-screen player.
 export function toggleModal(): { type: string };
-// Opens the sheet with the play queue, or the one with the menu of a song.
+// Opens the sheet with the play queue, the one with the menu of a song, or
+// the one that asks which playlist of mine the song goes into.
 export function openModalLite(
-  payload: { type: 'nowplaying' } | { type: 'track'; item: Track }
+  payload:
+    | { type: 'nowplaying' }
+    | { type: 'track' | 'add_to_playlist'; item: Track }
 ): { type: string };
 export function closeModalLite(): { type: string };
+
+// Saves the playlist as a new playlist of mine; the id it has is replaced.
+export function createMyPlaylist(playlist: {
+  info: PlaylistInfo;
+  tracks: Track[];
+}): { type: string };
+// The playlists of mine to keep, in their new order, without 我喜欢的音乐.
+export function saveMyPlaylists(playlists: PlaylistInfo[]): { type: string };
+// Replaces the songs of a playlist of mine.
+export function editMyPlaylist(playlist: {
+  info: PlaylistInfo;
+  tracks: Track[];
+}): { type: string };
+// Adds the song to a playlist of mine unless it is there already.
+export function addToMyPlaylist(payload: {
+  track: Track;
+  playlist: PlaylistInfo;
+}): { type: string };
+export function addToMyFavorite(track: Track): { type: string };
+export function removeFromMyFavorite(track: Track): { type: string };
