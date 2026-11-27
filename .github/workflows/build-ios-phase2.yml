@@ -9,6 +9,12 @@ on:
 permissions:
   contents: write
 
+# A newer push replaces the build of an older one, so that the release always
+# ends up holding the newest commit.
+concurrency:
+  group: build-ios-phase2
+  cancel-in-progress: true
+
 jobs:
   build-ios:
     runs-on: macos-26-intel
