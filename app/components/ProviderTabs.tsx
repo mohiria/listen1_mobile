@@ -16,19 +16,27 @@ const providers = Client.getPlatformArray();
 
 export const firstProviderId = providers[0].platformId;
 
+// stands in the row of names for all the providers together
+export const ALL_PROVIDERS = 'all';
+
+const withAll = [{ name: '全部', platformId: ALL_PROVIDERS }, ...providers];
+
 // The row of provider names above a list; one of them is selected.
 export default function ProviderTabs({
   selected,
   onSelect,
+  all = false,
 }: {
   selected: string;
   onSelect: (platformId: string) => void;
+  // puts 全部 in front of the names
+  all?: boolean;
 }) {
   const palette = usePalette();
 
   return (
     <View style={[styles.row, { backgroundColor: palette.windowColor }]}>
-      {providers.map(({ name, platformId }) => {
+      {(all ? withAll : providers).map(({ name, platformId }) => {
         const active = platformId === selected;
 
         return (

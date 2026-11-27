@@ -3,6 +3,7 @@ import netease from './provider/netease';
 import kugou from './provider/kugou';
 import kuwo from './provider/kuwo';
 import { createResolver } from './resolve';
+import { createAggregateSearch } from './aggregate';
 // import bilibili from './provider/bilibili';
 // import migu from './provider/migu';
 
@@ -22,9 +23,12 @@ enabledProvider.forEach((provider) => {
   enName2NameDict[provider.meta.enName] = provider.meta.name;
 });
 
-// the order in which the other providers are preferred when switching
+// the order in which the providers are preferred, when switching and when
+// several of them find the same song
+const preferredProvider = [netease, qq, kuwo, kugou];
+
 const resolveTrack = createResolver(
-  [netease, qq, kuwo, kugou].map((provider) => ({
+  preferredProvider.map((provider) => ({
     name: provider.meta.enName,
     prefix: provider.meta.platformId,
     search: (keyword) => provider.search(keyword, 1).then((r) => r.result),
@@ -54,6 +58,17 @@ export default class Client {
     const provider = getProviderByItemId(platformId);
 
     return provider.search(keyword, page);
+  }
+
+  // One search over every provider. See ./aggregate.js for what it gives.
+  static searchAll(keyword) {
+    return createAggregateSearch(
+      preferredProvider.map((provider) => ({
+        name: provider.meta.enName,
+        search: (text, page) => provider.search(text, page),
+      })),
+      keyword
+    );
   }
 
   static getPlaylist(playlistId) {

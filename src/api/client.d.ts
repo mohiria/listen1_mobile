@@ -15,7 +15,14 @@ export type ResolveResult =
   | { url: string; source: string; switched: boolean }
   | { url: ''; reason: 'unavailable' | 'network' };
 
-export type PlaylistInfo = { id: string; title: string; cover_img_url: string };
+// One search over every provider. more() adds the next page of each and
+// gives everything found so far; failed holds the enName of the providers
+// that did not answer.
+export type AggregateSearch = {
+  more(): Promise<{ tracks: Track[]; failed: string[]; done: boolean }>;
+};
+
+export type PlaylistInfo ={ id: string; title: string; cover_img_url: string };
 
 export default class Client {
   static getPlatformArray(): Provider[];
@@ -29,6 +36,7 @@ export default class Client {
     page: number,
     platformId: string
   ): Promise<{ result: Track[]; total: number }>;
+  static searchAll(keyword: string): AggregateSearch;
   static getPlaylist(
     playlistId: string
   ): Promise<{ info: PlaylistInfo; tracks: Track[] }>;

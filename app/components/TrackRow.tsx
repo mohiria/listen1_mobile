@@ -11,9 +11,12 @@ function TrackRow({
   onPress,
   icon,
   onPressIcon,
+  tag,
 }: {
   track: Track;
   playing: boolean;
+  // a short word shown at the end of the row, before the button
+  tag?: string;
   onPress: (track: Track) => void;
   // a button at the end of the row
   icon?: 'more-vert' | 'close';
@@ -55,6 +58,11 @@ function TrackRow({
           {track.album ? `${track.artist} - ${track.album}` : track.artist}
         </Text>
       </View>
+      {tag !== undefined ? (
+        <Text style={[styles.tag, { color: tint ?? palette.thirdColor }]}>
+          {tag}
+        </Text>
+      ) : null}
       {icon !== undefined ? (
         <Pressable
           hitSlop={6}
@@ -84,6 +92,7 @@ const styles = StyleSheet.create({
   text: { flex: 1, justifyContent: 'center' },
   title: { fontSize: 14 },
   detail: { fontSize: 12, marginTop: 3 },
+  tag: { fontSize: 12, marginLeft: 10 },
   icon: {
     alignItems: 'center',
     height: 40,
