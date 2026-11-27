@@ -108,6 +108,47 @@ test('a song put next is played right after the current one', () => {
   assert.equal(nowPlaying(state), d.id);
 });
 
+test('a song of the play queue put next moves there instead of appearing twice', () => {
+  const state = after(
+    actions.playTrackInPlaylist({ track: a, playlist }),
+    actions.addNextTrack(c)
+  );
+
+  assert.deepEqual(queue(state), [a.id, c.id, b.id]);
+  assert.equal(nowPlaying(state), a.id);
+});
+
+test('putting the current song next changes nothing', () => {
+  const state = after(
+    actions.playTrackInPlaylist({ track: b, playlist }),
+    actions.addNextTrack(b)
+  );
+
+  assert.deepEqual(queue(state), [a.id, b.id, c.id]);
+  assert.equal(nowPlaying(state), b.id);
+});
+
+test('in shuffle a song put next is the one shuffle moves to', () => {
+  const d = song('kwtrack_d');
+  const state = after(
+    actions.playTrackInPlaylist({ track: a, playlist }),
+    actions.changePlayMode(),
+    actions.addNextTrack(d),
+    actions.addNextTrack(c),
+    actions.nextTrack()
+  );
+
+  assert.equal(nowPlaying(state), c.id);
+  assert.deepEqual(queue(state).sort(), [a.id, b.id, c.id, d.id].sort());
+});
+
+test('with no current song, a song put next becomes the current one', () => {
+  const state = after(actions.addNextTrack(a));
+
+  assert.deepEqual(queue(state), [a.id]);
+  assert.equal(nowPlaying(state), a.id);
+});
+
 test('a removed song leaves the play queue', () => {
   const state = after(
     actions.playTrackInPlaylist({ track: a, playlist }),
@@ -115,6 +156,18 @@ test('a removed song leaves the play queue', () => {
   );
 
   assert.deepEqual(queue(state), [a.id, c.id]);
+});
+
+test('next and previous keep the current song once the play queue is empty', () => {
+  const start = [
+    actions.playTrackInPlaylist({ track: a, playlist }),
+    actions.removeTrack(a),
+    actions.removeTrack(b),
+    actions.removeTrack(c),
+  ];
+
+  assert.equal(nowPlaying(after(...start, actions.nextTrack())), a.id);
+  assert.equal(nowPlaying(after(...start, actions.prevTrack())), a.id);
 });
 
 test('a song that fails to load is skipped', () => {

@@ -97,6 +97,10 @@ function next(state, extraState) {
   if (extra === null) {
     extra = {};
   }
+  // the last song may have been removed from the play queue while it played
+  if (state.tracks.length === 0) {
+    return { ...state, ...extra };
+  }
   if (
     state.playMode === ENUM_PLAYMODE.LOOP ||
     state.playMode === ENUM_PLAYMODE.REPEAT_ONE
@@ -216,18 +220,29 @@ const playerReducerBase = (state = defaultPlayerState, action) => {
         tracks: action.tracks,
       };
     case TYPE.ADD_NEXT_TRACK:
+      // nothing to follow: the song becomes the current one
+      if (!state.nowplayingTrack) {
+        return playerReducerBase(state, {
+          type: TYPE.PLAY_TRACK,
+          track: action.payload,
+        });
+      }
+      if (state.nowplayingTrack.id === action.payload.id) {
+        return state;
+      }
+      // a song already in the play queue moves instead of appearing twice
       if (state.playMode === ENUM_PLAYMODE.SHUFFLE) {
         return {
           ...state,
           tracks: insertArrayNextToTarget(
-            state.tracks,
+            state.tracks.filter((i) => i.id !== action.payload.id),
             action.payload,
             state.nowplayingTrack,
             'id'
           ),
 
           shuffleIds: insertArrayNextToTarget(
-            state.shuffleIds,
+            state.shuffleIds.filter((id) => id !== action.payload.id),
             action.payload.id,
             state.nowplayingTrack.id
           ),
@@ -237,7 +252,7 @@ const playerReducerBase = (state = defaultPlayerState, action) => {
       return {
         ...state,
         tracks: insertArrayNextToTarget(
-          state.tracks,
+          state.tracks.filter((i) => i.id !== action.payload.id),
           action.payload,
           state.nowplayingTrack,
           'id'
@@ -246,6 +261,9 @@ const playerReducerBase = (state = defaultPlayerState, action) => {
     case TYPE.TOGGLE_PLAY:
       return { ...state, isPlaying: !state.isPlaying };
     case TYPE.PREV_TRACK:
+      if (state.tracks.length === 0) {
+        return state;
+      }
       if (
         state.playMode === ENUM_PLAYMODE.LOOP ||
         state.playMode === ENUM_PLAYMODE.REPEAT_ONE
