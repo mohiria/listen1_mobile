@@ -1,15 +1,10 @@
-import React from 'react';
-import {
-  ActionSheetIOS,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import React, { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { changeTheme } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
+import Sheet from '../components/Sheet';
 import type { SettingsStackParamList } from '../Navigation';
 import { usePalette, type Palette } from '../theme';
 import { useStore } from '../useStore';
@@ -21,21 +16,7 @@ const THEMES = [
   { theme: 'black', name: '黑色' },
 ] as const;
 
-function chooseTheme() {
-  ActionSheetIOS.showActionSheetWithOptions(
-    {
-      options: [...THEMES.map(one => one.name), '取消'],
-      cancelButtonIndex: THEMES.length,
-    },
-    index => {
-      const chosen = THEMES[index];
-
-      if (chosen !== undefined) {
-        store.dispatch(changeTheme(chosen.theme));
-      }
-    }
-  );
-}
+const CHOICE_HEIGHT = 50;
 
 function Row({
   title,
@@ -66,6 +47,8 @@ export default function SettingsScreen({
 }: NativeStackScreenProps<SettingsStackParamList, 'Settings'>) {
   const palette = usePalette();
   const theme = useStore(state => state.settingState.theme);
+  // the sheet with the three themes; touching outside it closes it
+  const [choosing, setChoosing] = useState(false);
 
   return (
     <Screen>
@@ -74,7 +57,7 @@ export default function SettingsScreen({
           title="主题"
           value={THEMES.find(one => one.theme === theme)?.name ?? ''}
           palette={palette}
-          onPress={chooseTheme}
+          onPress={() => setChoosing(true)}
         />
         <Row
           title="备份"
@@ -95,6 +78,44 @@ export default function SettingsScreen({
           onPress={() => navigation.navigate('About')}
         />
       </ScrollView>
+      <Modal
+        transparent
+        visible={choosing}
+        animationType="fade"
+        supportedOrientations={['portrait', 'landscape']}
+        onRequestClose={() => setChoosing(false)}
+      >
+        <Sheet
+          visible
+          height={THEMES.length * CHOICE_HEIGHT}
+          onClose={() => setChoosing(false)}
+        >
+          {THEMES.map(one => (
+            <Pressable
+              key={one.theme}
+              style={styles.choice}
+              onPress={() => {
+                store.dispatch(changeTheme(one.theme));
+                setChoosing(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    color:
+                      one.theme === theme
+                        ? palette.accentColor
+                        : palette.primaryColor,
+                  },
+                ]}
+              >
+                {one.name}
+              </Text>
+            </Pressable>
+          ))}
+        </Sheet>
+      </Modal>
     </Screen>
   );
 }
@@ -109,4 +130,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   title: { fontSize: 16 },
+  choice: {
+    alignItems: 'center',
+    height: CHOICE_HEIGHT,
+    justifyContent: 'center',
+  },
 });
