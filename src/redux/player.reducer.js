@@ -118,6 +118,15 @@ function next(state, extraState) {
 
   return { ...state, ...extra };
 }
+// The song a "next" would move to, without moving there. Null when nothing
+// is playing or the play queue is empty.
+export function peekNextTrack(state) {
+  if (!state.nowplayingTrack || state.tracks.length === 0) {
+    return null;
+  }
+
+  return next(state, null).nowplayingTrack || null;
+}
 function pause(state) {
   return { ...state, isPlaying: false };
 }

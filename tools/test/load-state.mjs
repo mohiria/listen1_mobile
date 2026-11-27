@@ -19,6 +19,7 @@ export async function loadState() {
         export { default as reducer } from './src/redux/reducer.js';
         export * as actions from './src/redux/actions.js';
         export { default as StateJsonConvert } from './src/modules/state-json-convert.js';
+        export { createPlaybackDriver } from './app/player/driver.ts';
       `,
       resolveDir: repoRoot,
     },

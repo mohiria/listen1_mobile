@@ -20,4 +20,8 @@ export const store: {
   subscribe(listener: () => void): () => void;
 };
 
-export const persistor: { flush(): Promise<unknown> };
+export const persistor: {
+  flush(): Promise<unknown>;
+  getState(): { bootstrapped: boolean };
+  subscribe(listener: () => void): () => void;
+};
