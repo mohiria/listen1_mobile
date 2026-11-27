@@ -34,3 +34,10 @@ export function kuwoIsRestricted(song) {
 export function kuwoIsPromptAudio(url) {
   return /\/n1\/69\/32\/588957081\.mp3/.test(url);
 }
+
+// A song of a playlist. The track address request answers "应版权方要求，
+// 该内容已经无法提供" for copyright 0 and gives an address for 1 (26 songs of
+// one playlist, 2026-11-28).
+export function miguIsRestricted(song) {
+  return Number(song.copyright) === 0;
+}

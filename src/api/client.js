@@ -2,12 +2,11 @@ import qq from './provider/qq';
 import netease from './provider/netease';
 import kugou from './provider/kugou';
 import kuwo from './provider/kuwo';
+import migu from './provider/migu';
 import { createResolver } from './resolve';
 import { createAggregateSearch, takeInTurn } from './aggregate';
-// import bilibili from './provider/bilibili';
-// import migu from './provider/migu';
 
-const availableProvider = [netease, kugou, kuwo, qq];
+const availableProvider = [netease, kugou, kuwo, qq, migu];
 
 const enabledProvider = availableProvider;
 
@@ -25,7 +24,7 @@ enabledProvider.forEach((provider) => {
 
 // the order in which the providers are preferred, when switching and when
 // several of them find the same song
-const preferredProvider = [netease, qq, kuwo, kugou];
+const preferredProvider = [netease, qq, kuwo, kugou, migu];
 
 const resolveTrack = createResolver(
   preferredProvider.map((provider) => ({

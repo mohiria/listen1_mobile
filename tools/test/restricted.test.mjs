@@ -8,6 +8,7 @@ import {
   kugouIsRestricted,
   kuwoIsRestricted,
   kuwoIsPromptAudio,
+  miguIsRestricted,
 } from '../../src/api/restricted.js';
 
 // The samples below are trimmed from real responses seen on 2026-11-26.
@@ -97,4 +98,14 @@ test('kuwo: the address of a real song is not taken for the prompt clip', () => 
     ),
     false
   );
+});
+
+test('migu: a song whose copyright is gone is restricted', () => {
+  assert.equal(miguIsRestricted({ copyright: 0, chargeAuditions: '-1' }), true);
+  assert.equal(miguIsRestricted({ copyright: '0' }), true);
+});
+
+test('migu: a member song the visitor still gets in 128k is not restricted', () => {
+  assert.equal(miguIsRestricted({ copyright: 1, vipType: '1' }), false);
+  assert.equal(miguIsRestricted({ copyright: 1, vipType: '' }), false);
 });
