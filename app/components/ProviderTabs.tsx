@@ -16,27 +16,25 @@ const providers = Client.getPlatformArray();
 
 export const firstProviderId = providers[0].platformId;
 
-// stands in the row of names for all the providers together
-export const ALL_PROVIDERS = 'all';
-
-const withAll = [{ name: '全部', platformId: ALL_PROVIDERS }, ...providers];
+export type TabPage = { name: string; platformId: string };
 
 // The row of provider names above a list; one of them is selected.
 export default function ProviderTabs({
   selected,
   onSelect,
-  all = false,
+  pages = providers,
 }: {
   selected: string;
   onSelect: (platformId: string) => void;
-  // puts 全部 in front of the names
-  all?: boolean;
+  // other names than those of the providers, for a list that is not split
+  // by provider
+  pages?: TabPage[];
 }) {
   const palette = usePalette();
 
   return (
     <View style={[styles.row, { backgroundColor: palette.windowColor }]}>
-      {(all ? withAll : providers).map(({ name, platformId }) => {
+      {pages.map(({ name, platformId }) => {
         const active = platformId === selected;
 
         return (
@@ -76,15 +74,14 @@ export function ProviderPager({
   selected,
   onSelect,
   render,
-  all = false,
+  pages = providers,
 }: {
   selected: string;
   onSelect: (platformId: string) => void;
   render: (platformId: string) => React.ReactNode;
-  // puts the page of 全部 in front, as in the row of names
-  all?: boolean;
+  // the same pages as the row of names was given
+  pages?: TabPage[];
 }) {
-  const pages = all ? withAll : providers;
   const insets = useSafeAreaInsets();
   const pageWidth = useWindowDimensions().width - insets.left - insets.right;
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
