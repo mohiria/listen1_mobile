@@ -4,6 +4,7 @@ import request from '../request';
 import { neteaseIsRestricted, neteaseIsTrialClip } from '../restricted';
 import { isExcerpt } from '../excerpt';
 import type {
+  Chart,
   FoundPlaylist,
   ParsedUrl,
   Playlist,
@@ -233,7 +234,23 @@ function parseUrl(url: string): ParsedUrl | null {
 
 const meta = { name: '网易', platformId: 'ne', enName: 'netease' };
 
+// The charts of this provider are playlists.
+const charts: Chart[] = (
+  [
+    ['hot', '热歌榜', '3778678'],
+    ['rising', '飙升榜', '19723756'],
+    ['new', '新歌榜', '3779629'],
+  ] as const
+).map(([kind, title, id]) => ({
+  kind,
+  title,
+  id: `neplaylist_${id}`,
+  cover_img_url: '',
+  source: 'netease',
+}));
+
 const provider: ProviderModule = {
+  charts,
   meta,
   showPlaylist,
   getPlaylist,

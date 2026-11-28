@@ -36,6 +36,14 @@ export type PlaylistInfo = {
 
 export type Playlist = { info: PlaylistInfo; tracks: Track[] };
 
+// A chart of a provider. It opens as a playlist does, by its id. The cover
+// comes with the songs, so cover_img_url is '' here.
+export type Chart = PlaylistInfo & {
+  kind: 'hot' | 'rising' | 'new';
+  // the provider the chart belongs to, by its enName
+  source: string;
+};
+
 // A playlist as a search finds it.
 export type FoundPlaylist = PlaylistInfo & { author: string; count: number };
 
@@ -52,6 +60,8 @@ export type ParsedUrl = { type: string; id: string };
 // What every file in ./provider exports.
 export type ProviderModule = {
   meta: Provider;
+  // the hot, the rising and the new chart, as far as the provider has them
+  charts: Chart[];
   showPlaylist(
     offset: number
   ): Promise<{ result: PlaylistInfo[]; hasNextPage?: boolean }>;

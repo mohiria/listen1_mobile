@@ -2,6 +2,7 @@ import request from '../request';
 import { miguIsRestricted } from '../restricted';
 import { isExcerpt } from '../excerpt';
 import type {
+  Chart,
   FoundPlaylist,
   ParsedUrl,
   Playlist,
@@ -84,8 +85,35 @@ function songsOfPlaylist(listId: string, page: number): Promise<Track[]> {
   ).then((data) => (data.list || []).map(convertListed));
 }
 
+// A chart comes whole, 50 or 100 songs, in the form the songs of a playlist
+// do.
+function getChart(columnId: string): Promise<Playlist> {
+  return json(
+    `${APP_HOST}/MIGUM2.0/v1.0/content/querycontentbyId.do?columnId=${columnId}&needAll=0`,
+    { headers: { channel: '0146832' } }
+  ).then((data) => {
+    const column = data.columnInfo;
+
+    return {
+      info: {
+        cover_img_url: column.columnSmallpicUrl || column.columnPicUrl || '',
+        title: column.columnTitle,
+        id: `mgchart_${columnId}`,
+        source_url: 'https://music.migu.cn/v3/music/top',
+      },
+      tracks: (column.contents || [])
+        .filter((content: any) => content.objectInfo)
+        .map((content: any) => convertListed(content.objectInfo)),
+    };
+  });
+}
+
 function getPlaylist(playlistId: string): Promise<Playlist> {
   const listId = playlistId.split('_').pop() as string;
+
+  if (playlistId.startsWith('mgchart_')) {
+    return getChart(listId);
+  }
 
   return json(
     `${APP_HOST}/MIGUM2.0/v1.0/content/resourceinfo.do?needSimple=00&resourceType=2021&resourceId=${listId}`
@@ -212,7 +240,22 @@ function parseUrl(url: string): ParsedUrl | null {
 
 const meta = { name: '咪咕', platformId: 'mg', enName: 'migu' };
 
+// Migu has no rising chart.
+const charts: Chart[] = (
+  [
+    ['hot', '尖叫热歌榜', '27186466'],
+    ['new', '尖叫新歌榜', '27553319'],
+  ] as const
+).map(([kind, title, id]) => ({
+  kind,
+  title,
+  id: `mgchart_${id}`,
+  cover_img_url: '',
+  source: 'migu',
+}));
+
 const provider: ProviderModule = {
+  charts,
   meta,
   showPlaylist,
   getPlaylist,

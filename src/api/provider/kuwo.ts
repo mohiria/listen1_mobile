@@ -4,6 +4,7 @@ import request from '../request';
 import { kuwoIsRestricted, kuwoIsPromptAudio } from '../restricted';
 import { isExcerpt } from '../excerpt';
 import type {
+  Chart,
   FoundPlaylist,
   ParsedUrl,
   Playlist,
@@ -115,6 +116,8 @@ function getPlaylist(playlistId: string): Promise<Playlist> | null {
   switch (list_id) {
     case 'kwplaylist':
       return kw_get_playlist(d);
+    case 'kwchart':
+      return kw_get_chart(d);
     // case 'kwalbum':
     //   return kw_album(d);
     // case 'kwartist':
@@ -144,6 +147,24 @@ async function kw_get_playlist(playlistId: string): Promise<Playlist> {
       );
       return { info, tracks };
     });
+}
+
+// The first 100 songs of a chart. Its songs come in the form the songs of a
+// playlist do, without a cover.
+async function kw_get_chart(bangId: string): Promise<Playlist> {
+  const data = await request(
+    `http://kbangserver.kuwo.cn/ksong.s?from=pc&fmt=json&pn=0&rn=100&type=bang&data=content&id=${bangId}&show_copyright_off=0&pcmp4=1&isbang=1`
+  ).then((response) => response.json());
+
+  return {
+    info: {
+      cover_img_url: data.pic || '',
+      title: data.name,
+      id: `kwchart_${bangId}`,
+      source_url: 'http://www.kuwo.cn/rankList',
+    },
+    tracks: data.musiclist.map((t: any) => kw_render_playlist_result_item(t)),
+  };
 }
 
 function html_decode(str: string): string {
@@ -304,7 +325,22 @@ function parseUrl(url: string): ParsedUrl | null {
 
 const meta = { name: '酷我', platformId: 'kw', enName: 'kuwo' };
 
+const charts: Chart[] = (
+  [
+    ['hot', '热歌榜', '16'],
+    ['rising', '飙升榜', '93'],
+    ['new', '新歌榜', '17'],
+  ] as const
+).map(([kind, title, id]) => ({
+  kind,
+  title,
+  id: `kwchart_${id}`,
+  cover_img_url: '',
+  source: 'kuwo',
+}));
+
 const provider: ProviderModule = {
+  charts,
   meta,
   showPlaylist,
   getPlaylist,

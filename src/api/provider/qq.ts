@@ -2,6 +2,7 @@ import request, { requestBytes } from '../request';
 import { decodeUtf8 } from '../utf8';
 import { isExcerpt } from '../excerpt';
 import type {
+  Chart,
   FoundPlaylist,
   ParsedUrl,
   Playlist,
@@ -170,8 +171,60 @@ function searchPlaylist(
     });
 }
 
+// A song of a chart, which comes in another form than a song of a playlist.
+function convertChartSong(song: any): Track {
+  return {
+    id: `qqtrack_${song.mid}`,
+    title: htmlDecode(song.name),
+    artist: htmlDecode(song.singer[0].name),
+    artist_id: `qqartist_${song.singer[0].mid}`,
+    album: htmlDecode(song.album.name),
+    album_id: `qqalbum_${song.album.mid}`,
+    img_url: song.album.mid ? qqGetImageUrl(song.album.mid, 'album') : '',
+    source: 'qq',
+    source_url: `http://y.qq.com/#type=song&mid=${song.mid}&tpl=yqq_song_detail`,
+    url: `qqtrack_${song.mid}`,
+    disabled: !qqIsPlayable(song.action),
+  };
+}
+
+// The first 100 songs of a chart.
+function getChart(topId: string): Promise<Playlist> {
+  const data = {
+    comm: { ct: 24, cv: 0 },
+    detail: {
+      module: 'musicToplist.ToplistInfoServer',
+      method: 'GetDetail',
+      param: { topId: Number(topId), offset: 0, num: 100, period: '' },
+    },
+  };
+  const url = `https://u.y.qq.com/cgi-bin/musicu.fcg?format=json&data=${encodeURIComponent(
+    JSON.stringify(data)
+  )}`;
+
+  return request(url, { headers: { Referer: 'https://y.qq.com/' } })
+    .then(response => response.json())
+    .then(r => {
+      const found = r.detail.data;
+
+      return {
+        info: {
+          cover_img_url: found.data.frontPicUrl || '',
+          title: found.data.title,
+          id: `qqchart_${topId}`,
+          source_url: `https://y.qq.com/n/ryqq/toplist/${topId}`,
+        },
+        tracks: found.songInfoList.map(convertChartSong),
+      };
+    });
+}
+
 function getPlaylist(playlistId: string): Promise<Playlist> {
   const listId = playlistId.split('_').pop();
+
+  if (playlistId.startsWith('qqchart_')) {
+    return getChart(listId as string);
+  }
   const targetUrl =
     `${'http://i.y.qq.com/qzone-music/fcg-bin/fcg_ucc_getcdinfo_' +
       'byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&jsonpCallback=' +
@@ -279,7 +332,22 @@ function parseUrl(url: string): ParsedUrl | null {
 }
 const meta = { name: 'QQ', platformId: 'qq', enName: 'qq' };
 
+const charts: Chart[] = (
+  [
+    ['hot', '热歌榜', '26'],
+    ['rising', '飙升榜', '62'],
+    ['new', '新歌榜', '27'],
+  ] as const
+).map(([kind, title, id]) => ({
+  kind,
+  title,
+  id: `qqchart_${id}`,
+  cover_img_url: '',
+  source: 'qq',
+}));
+
 const provider: ProviderModule = {
+  charts,
   meta,
   showPlaylist,
   getPlaylist,

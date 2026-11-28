@@ -7,6 +7,7 @@ import { createResolver } from './resolve';
 import { createAggregateSearch, takeInTurn } from './aggregate';
 import type {
   AggregateSearch,
+  Chart,
   FoundPlaylist,
   ParsedUrl,
   Playlist,
@@ -19,6 +20,7 @@ import type {
 
 export type {
   AggregateSearch,
+  Chart,
   FoundPlaylist,
   PlaylistInfo,
   PlaylistSearch,
@@ -68,6 +70,13 @@ function getProviderName(enName: string): string {
 export default class Client {
   static getPlatformArray = getPlatformArray;
   static getProviderName = getProviderName;
+  // The charts of every provider, provider by provider. One opens with
+  // getPlaylist.
+  static getCharts(): Chart[] {
+    return ([] as Chart[]).concat(
+      ...enabledProvider.map((provider) => provider.charts)
+    );
+  }
   static showPlaylist(
     offset: number,
     platformId: string

@@ -3,6 +3,7 @@ import request from '../request';
 import {kugouIsRestricted} from '../restricted';
 import { isExcerpt } from '../excerpt';
 import type {
+  Chart,
   FoundPlaylist,
   ParsedUrl,
   Playlist,
@@ -115,6 +116,8 @@ function getPlaylist(playlistId: string): Promise<Playlist> | null {
   switch (listId) {
     case 'kgplaylist':
       return kg_get_playlist(d);
+    case 'kgchart':
+      return kg_get_chart(d);
     case 'kgalbum':
       return kg_album(d) as Promise<any>;
     case 'kgartist':
@@ -261,6 +264,27 @@ async function kg_get_playlist(listId: string): Promise<Playlist> {
   };
 
   return {info, tracks: songs.info.map(kg_render_playlist_result_item)};
+}
+
+// The first 100 songs of a chart. Its songs come in the form the songs of a
+// playlist do. The answer does not name the chart, and its cover is the one
+// of the first song.
+async function kg_get_chart(rankId: string): Promise<Playlist> {
+  const {data} = await request(
+    `http://mobilecdnbj.kugou.com/api/v3/rank/song?version=9108&ranktype=2&plat=0&pagesize=100&area_code=1&page=1&rankid=${rankId}&with_res_tag=0`,
+  ).then((response) => response.json());
+  const tracks: Track[] = data.info.map(kg_render_playlist_result_item);
+  const chart = charts.find((c) => c.id === `kgchart_${rankId}`);
+
+  return {
+    info: {
+      cover_img_url: tracks.length > 0 ? tracks[0].img_url || '' : '',
+      title: chart ? chart.title : '榜单',
+      id: `kgchart_${rankId}`,
+      source_url: `https://www.kugou.com/yy/rank/home/1-${rankId}.html`,
+    },
+    tracks,
+  };
 }
 
 function kg_render_playlist_result_item(item: any): Track {
@@ -440,7 +464,22 @@ function parseUrl(url: string): ParsedUrl | null {
 
 const meta = {name: '酷狗', platformId: 'kg', enName: 'kugou'};
 
+const charts: Chart[] = (
+  [
+    ['hot', 'TOP500', '8888'],
+    ['rising', '飙升榜', '6666'],
+    ['new', '新歌榜', '74534'],
+  ] as const
+).map(([kind, title, id]) => ({
+  kind,
+  title,
+  id: `kgchart_${id}`,
+  cover_img_url: '',
+  source: 'kugou',
+}));
+
 const provider: ProviderModule = {
+  charts,
   meta,
   showPlaylist,
   getPlaylist,
