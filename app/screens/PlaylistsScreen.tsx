@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Client, { type PlaylistInfo } from '../../src/api/client';
 import ListStatus from '../components/ListStatus';
+import SearchBox from '../components/SearchBox';
 import ProviderTabs, {
   firstProviderId,
   ProviderPager,
@@ -151,6 +152,7 @@ export default function PlaylistsScreen({
 
   return (
     <Screen>
+      <SearchBox onPress={() => navigation.navigate('Search')} />
       <ProviderTabs selected={selected} onSelect={setSelected} />
       <ProviderPager
         selected={selected}

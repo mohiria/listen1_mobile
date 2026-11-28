@@ -7,7 +7,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import Client, {
   type AggregateSearch,
@@ -20,7 +19,6 @@ import { openModalLite, playTrack } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import Cover from '../components/Cover';
 import ListStatus from '../components/ListStatus';
-import type { SearchStackParamList } from '../Navigation';
 import ProviderTabs, {
   ProviderPager,
   type TabPage,
@@ -300,9 +298,14 @@ const KINDS: TabPage[] = [
   { name: '歌单', platformId: PLAYLISTS },
 ];
 
+// The screen is in the stacks of two tabs, behind the search box of each.
 export default function SearchScreen({
   navigation,
-}: NativeStackScreenProps<SearchStackParamList, 'Search'>) {
+}: {
+  navigation: {
+    navigate(name: 'Playlist', params: { info: PlaylistInfo }): void;
+  };
+}) {
   const palette = usePalette();
   const [kind, setKind] = useState(SONGS);
   const [keyword, setKeyword] = useState('');
@@ -325,6 +328,7 @@ export default function SearchScreen({
           placeholder="输入歌曲名，歌手或专辑"
           placeholderTextColor={palette.thirdColor}
           returnKeyType="search"
+          autoFocus
           clearButtonMode="while-editing"
           autoCapitalize="none"
           autoCorrect={false}

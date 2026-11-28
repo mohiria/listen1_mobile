@@ -16,6 +16,7 @@ import MiniPlayer from './components/MiniPlayer';
 import AboutScreen from './screens/AboutScreen';
 import BackupScreen from './screens/BackupScreen';
 import CreatePlaylistScreen from './screens/CreatePlaylistScreen';
+import HomeScreen from './screens/HomeScreen';
 import ImportPlaylistScreen from './screens/ImportPlaylistScreen';
 import MineScreen from './screens/MineScreen';
 import PlaylistScreen from './screens/PlaylistScreen';
@@ -26,11 +27,13 @@ import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { navigationTheme, usePalette } from './theme';
 
-export type PlaylistsStackParamList = {
-  Playlists: undefined;
+export type HomeStackParamList = {
+  Home: undefined;
+  Search: undefined;
   Playlist: { info: PlaylistInfo };
 };
-export type SearchStackParamList = {
+export type PlaylistsStackParamList = {
+  Playlists: undefined;
   Search: undefined;
   Playlist: { info: PlaylistInfo };
 };
@@ -49,7 +52,7 @@ export type MineStackParamList = {
 
 const Tab = createBottomTabNavigator();
 const PlaylistsStack = createNativeStackNavigator<PlaylistsStackParamList>();
-const SearchStack = createNativeStackNavigator<SearchStackParamList>();
+const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const MineStack = createNativeStackNavigator<MineStackParamList>();
 
 // Each tab keeps its own stack, so the tab bar stays in place while screens
@@ -64,6 +67,30 @@ function useStackOptions(): NativeStackNavigationOptions {
   };
 }
 
+// The charts. The search screen opens from the box at the top, here and in
+// the tab of the playlists.
+function HomeTab() {
+  return (
+    <HomeStack.Navigator screenOptions={useStackOptions()}>
+      <HomeStack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ title: '首页' }}
+      />
+      <HomeStack.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ title: '搜索' }}
+      />
+      <HomeStack.Screen
+        name="Playlist"
+        component={PlaylistScreen}
+        options={{ title: '' }}
+      />
+    </HomeStack.Navigator>
+  );
+}
+
 function PlaylistsTab() {
   return (
     <PlaylistsStack.Navigator screenOptions={useStackOptions()}>
@@ -73,28 +100,16 @@ function PlaylistsTab() {
         options={{ title: '歌单' }}
       />
       <PlaylistsStack.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ title: '搜索' }}
+      />
+      <PlaylistsStack.Screen
         name="Playlist"
         component={PlaylistScreen}
         options={{ title: '' }}
       />
     </PlaylistsStack.Navigator>
-  );
-}
-
-function SearchTab() {
-  return (
-    <SearchStack.Navigator screenOptions={useStackOptions()}>
-      <SearchStack.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{ title: '搜索' }}
-      />
-      <SearchStack.Screen
-        name="Playlist"
-        component={PlaylistScreen}
-        options={{ title: '' }}
-      />
-    </SearchStack.Navigator>
   );
 }
 
@@ -191,14 +206,14 @@ export default function Navigation() {
         }}
       >
         <Tab.Screen
+          name="HomeTab"
+          component={HomeTab}
+          options={{ title: '首页' }}
+        />
+        <Tab.Screen
           name="PlaylistsTab"
           component={PlaylistsTab}
           options={{ title: '歌单' }}
-        />
-        <Tab.Screen
-          name="SearchTab"
-          component={SearchTab}
-          options={{ title: '搜索' }}
         />
         <Tab.Screen
           name="MineTab"

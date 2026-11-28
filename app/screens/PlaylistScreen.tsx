@@ -90,9 +90,10 @@ export default function PlaylistScreen({
   }, [mine, load]);
 
   const tracks = (mine ? saved?.tracks : loaded?.tracks) ?? NO_TRACKS;
-  // a playlist opened by its link is given without a title
-  const info =
-    (mine ? saved?.info : given.title === '' ? loaded?.info : given) ?? given;
+  // a playlist opened by its link is given without a title, and a chart
+  // without a cover
+  const partial = given.title === '' || given.cover_img_url === '';
+  const info = (mine ? saved?.info : partial ? loaded?.info : given) ?? given;
 
   const play = useCallback(
     (track: Track) =>
