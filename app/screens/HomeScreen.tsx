@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,8 +11,10 @@ import {
 
 import Client, { type Chart, type PlaylistInfo } from '../../src/api/client';
 import Cover from '../components/Cover';
+import ListStatus from '../components/ListStatus';
 import SearchBox from '../components/SearchBox';
 import { useSubscriptions } from '../components/SubscriptionList';
+import { createHomeData, type Lead } from '../homeData';
 import { usePalette } from '../theme';
 import Screen from './Screen';
 
@@ -26,78 +29,42 @@ const KINDS: { kind: Chart['kind']; title: string; color: string }[] = [
 // how many subscriptions the home screen shows; the rest are behind 全部
 const MOST_SUBSCRIPTIONS = 10;
 const charts = Client.getCharts();
-const providers = Client.getPlatformArray();
-
-// The song that leads a chart: its name, and its picture as the cover of the
-// chart. Where the song has no picture the chart's own takes its place.
-type Lead = { song: string; cover: string };
-
-// By the id of the chart, as far as it has been asked for since the app
-// started. A chart changes once a day at most.
-const leads: { [chartId: string]: Lead } = {};
 const NO_LEAD: Lead = { song: '', cover: '' };
 
-// What leads the chart; empty until it is known.
-function useLead(chart: Chart): Lead {
-  const [lead, setLead] = useState(leads[chart.id] ?? NO_LEAD);
-
-  useEffect(() => {
-    let mounted = true;
-
-    if (leads[chart.id] === undefined) {
-      // Promise.resolve: getPlaylist can throw for an id it does not recognise
-      Promise.resolve()
-        .then(() => Client.getPlaylist(chart.id))
-        .then(playlist => {
-          if (playlist.tracks.length > 0) {
-            leads[chart.id] = {
-              song: playlist.tracks[0].title,
-              cover:
-                playlist.tracks[0].img_url || playlist.info.cover_img_url || '',
-            };
-            if (mounted) {
-              setLead(leads[chart.id]);
-            }
-          }
-        })
-        // the tile stays without the name; the chart can still be opened
-        .catch(() => {});
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [chart.id]);
-
-  return lead;
-}
+// Lives as long as the app runs, so what was loaded is there again when the
+// screen comes back.
+const home = createHomeData({
+  charts,
+  platformIds: Client.getPlatformArray().map(provider => provider.platformId),
+  getPlaylist: id => Client.getPlaylist(id),
+  showPlaylist: (offset, platformId) => Client.showPlaylist(offset, platformId),
+});
+const loadMissing = () => {
+  home.load();
+};
+const loadAll = () => {
+  home.load(true);
+};
 
 function ChartTile({
   chart,
+  lead,
   color,
   onOpen,
 }: {
   chart: Chart;
+  lead: Lead;
   color: string;
   onOpen: (info: PlaylistInfo) => void;
 }) {
   const palette = usePalette();
-  const { song, cover } = useLead(chart);
-  const names = (
-    <>
-      <Text numberOfLines={2} style={styles.blockTitle}>
-        {chart.title}
-      </Text>
-      <Text style={styles.blockProvider}>
-        {Client.getProviderName(chart.source)}
-      </Text>
-    </>
-  );
+  const { song, cover } = lead;
+  const pictured = /^https?:/.test(cover);
 
   return (
     <Pressable style={styles.tile} onPress={() => onOpen(chart)}>
       <View style={[styles.picture, { backgroundColor: color }]}>
-        {/^https?:/.test(cover) ? (
+        {pictured ? (
           <Image
             source={{ uri: cover }}
             resizeMode="cover"
@@ -105,10 +72,13 @@ function ChartTile({
           />
         ) : null}
         {/* over a picture, darkens it so that the names stay readable */}
-        <View
-          style={[styles.block, cover === '' ? null : styles.shade]}
-        >
-          {names}
+        <View style={[styles.block, pictured ? styles.shade : null]}>
+          <Text numberOfLines={2} style={styles.blockTitle}>
+            {chart.title}
+          </Text>
+          <Text style={styles.blockProvider}>
+            {Client.getProviderName(chart.source)}
+          </Text>
         </View>
       </View>
       <Text
@@ -121,32 +91,26 @@ function ChartTile({
   );
 }
 
-// One playlist of each provider, the first it recommends. A provider that
-// does not answer is left out.
-function useRecommended(): PlaylistInfo[] {
-  const [lists, setLists] = useState<PlaylistInfo[]>([]);
+function PlaylistTile({
+  info,
+  onOpen,
+}: {
+  info: PlaylistInfo;
+  onOpen: (info: PlaylistInfo) => void;
+}) {
+  const palette = usePalette();
 
-  useEffect(() => {
-    let mounted = true;
-
-    Promise.all(
-      providers.map(provider =>
-        Client.showPlaylist(0, provider.platformId)
-          .then(({ result }) => result.slice(0, 1))
-          .catch(() => [] as PlaylistInfo[])
-      )
-    ).then(found => {
-      if (mounted) {
-        setLists(([] as PlaylistInfo[]).concat(...found));
-      }
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return lists;
+  return (
+    <Pressable style={styles.tile} onPress={() => onOpen(info)}>
+      <Cover url={info.cover_img_url} size={TILE} />
+      <Text
+        numberOfLines={1}
+        style={[styles.caption, { color: palette.secondaryColor }]}
+      >
+        {info.title}
+      </Text>
+    </Pressable>
+  );
 }
 
 function Section({
@@ -186,31 +150,9 @@ function Section({
   );
 }
 
-function PlaylistTile({
-  info,
-  onOpen,
-}: {
-  info: PlaylistInfo;
-  onOpen: (info: PlaylistInfo) => void;
-}) {
-  const palette = usePalette();
-
-  return (
-    <Pressable style={styles.tile} onPress={() => onOpen(info)}>
-      <Cover url={info.cover_img_url} size={TILE} />
-      <Text
-        numberOfLines={1}
-        style={[styles.caption, { color: palette.secondaryColor }]}
-      >
-        {info.title}
-      </Text>
-    </Pressable>
-  );
-}
-
 // The first screen of the app: the playlists I subscribed to, the charts of
 // every provider side by side, group by group, and a playlist of each
-// provider.
+// provider. Pulling down loads it all again.
 export default function HomeScreen({
   navigation,
 }: {
@@ -221,17 +163,32 @@ export default function HomeScreen({
     ): void;
   };
 }) {
-  const recommended = useRecommended();
+  const palette = usePalette();
+  const { leads, recommended, loading, failed, error } = useSyncExternalStore(
+    home.subscribe,
+    home.getState
+  );
   const subscriptions = useSubscriptions();
   const open = useCallback(
     (info: PlaylistInfo) => navigation.navigate('Playlist', { info }),
     [navigation]
   );
 
+  useEffect(loadMissing, []);
+
   return (
     <Screen>
       <SearchBox onPress={() => navigation.navigate('Search')} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadAll}
+            tintColor="#777777"
+          />
+        }
+      >
         {subscriptions.length > 0 ? (
           <Section
             title="订阅的歌单"
@@ -254,6 +211,7 @@ export default function HomeScreen({
                 <ChartTile
                   key={chart.id}
                   chart={chart}
+                  lead={leads[chart.id] ?? NO_LEAD}
                   color={color}
                   onOpen={open}
                 />
@@ -266,6 +224,22 @@ export default function HomeScreen({
               <PlaylistTile key={info.id} info={info} onOpen={open} />
             ))}
           </Section>
+        ) : null}
+        {!loading && failed.length > 0 ? (
+          <View>
+            <ListStatus
+              message={`有 ${failed.length} 项没有加载出来`}
+              onRetry={loadMissing}
+            />
+            {/* TEMP(2.1): the reason, to find out why the home screen stayed
+                empty on the device. Goes once that is settled. */}
+            <Text
+              selectable
+              style={[styles.reason, { color: palette.thirdColor }]}
+            >
+              {`${failed.join('、')}\n${error}`}
+            </Text>
+          </View>
         ) : null}
       </ScrollView>
     </Screen>
@@ -286,16 +260,15 @@ const styles = StyleSheet.create({
   more: { fontSize: 13 },
   strip: { gap: 10, paddingHorizontal: 12 },
   tile: { width: TILE },
+  picture: { borderRadius: 8, height: TILE, overflow: 'hidden', width: TILE },
+  image: { height: TILE, left: 0, position: 'absolute', top: 0, width: TILE },
   block: {
     alignItems: 'center',
-    borderRadius: 8,
     height: TILE,
     justifyContent: 'center',
     padding: 6,
     width: TILE,
   },
-  picture: { borderRadius: 8, height: TILE, overflow: 'hidden', width: TILE },
-  image: { height: TILE, left: 0, position: 'absolute', top: 0, width: TILE },
   shade: { backgroundColor: 'rgba(0, 0, 0, 0.4)' },
   blockTitle: {
     color: '#ffffff',
@@ -305,4 +278,5 @@ const styles = StyleSheet.create({
   },
   blockProvider: { color: '#ffffffcc', fontSize: 12, marginTop: 4 },
   caption: { fontSize: 12, marginTop: 5 },
+  reason: { fontSize: 11, paddingHorizontal: 20, textAlign: 'center' },
 });
