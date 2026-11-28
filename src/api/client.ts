@@ -5,6 +5,7 @@ import kuwo from './provider/kuwo';
 import migu from './provider/migu';
 import { createResolver } from './resolve';
 import { createAggregateSearch, takeInTurn } from './aggregate';
+import { parsePlaylistLink } from './link';
 import type {
   AggregateSearch,
   Chart,
@@ -154,17 +155,6 @@ export default class Client {
 
   // The playlist a link shared from a provider points to, if it is one.
   static parseUrl(url: string): ParsedUrl | null {
-    let result: ParsedUrl | null = null;
-
-    // eslint-disable-next-line consistent-return
-    enabledProvider.forEach((provider) => {
-      const r = provider.parseUrl(url);
-
-      if (r !== null) {
-        result = r;
-      }
-    });
-
-    return result;
+    return parsePlaylistLink(url);
   }
 }

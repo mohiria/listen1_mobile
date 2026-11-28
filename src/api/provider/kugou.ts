@@ -1,11 +1,9 @@
-import queryString from 'query-string';
 import request from '../request';
 import {kugouIsRestricted} from '../restricted';
 import { isExcerpt } from '../excerpt';
 import type {
   Chart,
   FoundPlaylist,
-  ParsedUrl,
   Playlist,
   PlaylistInfo,
   ProviderModule,
@@ -433,34 +431,6 @@ function kg_convert_song(song: any): Track {
   return track;
 }
 
-function parseUrl(url: string): ParsedUrl | null {
-  let result: ParsedUrl | null = null;
-
-  const r = /\/\/music\.163\.com\/playlist\/([0-9]+)/g.exec(url);
-
-  if (r !== null) {
-    return {
-      type: 'playlist',
-      id: `neplaylist_${r[1]}`,
-    };
-  }
-
-  if (
-    url.search('//music.163.com/#/m/playlist') !== -1 ||
-    url.search('//music.163.com/#/playlist') !== -1 ||
-    url.search('//music.163.com/playlist') !== -1 ||
-    url.search('//music.163.com/#/my/m/music/playlist') !== -1
-  ) {
-    const parsed = queryString.parseUrl(url);
-
-    result = {
-      type: 'playlist',
-      id: `neplaylist_${parsed.query.id}`,
-    };
-  }
-
-  return result;
-}
 
 const meta = {name: '酷狗', platformId: 'kg', enName: 'kugou'};
 
@@ -486,7 +456,6 @@ const provider: ProviderModule = {
   bootstrapTrack,
   search,
   searchPlaylist,
-  parseUrl,
 };
 
 export default provider;

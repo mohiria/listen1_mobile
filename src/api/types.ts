@@ -77,5 +77,4 @@ export type ProviderModule = {
     keyword: string,
     page: number
   ): Promise<{ result: FoundPlaylist[]; total: number }>;
-  parseUrl(url: string): ParsedUrl | null;
 };

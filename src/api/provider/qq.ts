@@ -4,7 +4,6 @@ import { isExcerpt } from '../excerpt';
 import type {
   Chart,
   FoundPlaylist,
-  ParsedUrl,
   Playlist,
   PlaylistInfo,
   ProviderModule,
@@ -295,41 +294,6 @@ function bootstrapTrack(trackId: string): Promise<string> {
     });
 }
 
-function parseUrl(url: string): ParsedUrl | null {
-  let result: ParsedUrl | null = null;
-  let match = /\/\/y.qq.com\/n\/yqq\/playlist\/([0-9]+)/.exec(url);
-
-  if (match != null) {
-    const playlistId = match[1];
-
-    result = {
-      type: 'playlist',
-      id: `qqplaylist_${playlistId}`,
-    };
-  }
-  match = /\/\/y.qq.com\/n\/yqq\/playsquare\/([0-9]+)/.exec(url);
-  if (match != null) {
-    const playlistId = match[1];
-
-    result = {
-      type: 'playlist',
-      id: `qqplaylist_${playlistId}`,
-    };
-  }
-  match = /\/\/y.qq.com\/n\/m\/detail\/taoge\/index.html\?id=([0-9]+)/.exec(
-    url
-  );
-  if (match != null) {
-    const playlistId = match[1];
-
-    result = {
-      type: 'playlist',
-      id: `qqplaylist_${playlistId}`,
-    };
-  }
-
-  return result;
-}
 const meta = { name: 'QQ', platformId: 'qq', enName: 'qq' };
 
 const charts: Chart[] = (
@@ -351,7 +315,6 @@ const provider: ProviderModule = {
   meta,
   showPlaylist,
   getPlaylist,
-  parseUrl,
   bootstrapTrack,
   search,
   searchPlaylist,

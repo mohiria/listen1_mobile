@@ -4,7 +4,6 @@ import { isExcerpt } from '../excerpt';
 import type {
   Chart,
   FoundPlaylist,
-  ParsedUrl,
   Playlist,
   PlaylistInfo,
   ProviderModule,
@@ -232,11 +231,6 @@ function searchPlaylist(
   });
 }
 
-function parseUrl(url: string): ParsedUrl | null {
-  const match = /\/\/music\.migu\.cn\/v3\/music\/playlist\/([0-9]+)/.exec(url);
-
-  return match ? { type: 'playlist', id: `mgplaylist_${match[1]}` } : null;
-}
 
 const meta = { name: '咪咕', platformId: 'mg', enName: 'migu' };
 
@@ -262,7 +256,6 @@ const provider: ProviderModule = {
   bootstrapTrack,
   search,
   searchPlaylist,
-  parseUrl,
 };
 
 export default provider;
