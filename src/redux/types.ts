@@ -30,6 +30,10 @@ export type MyPlaylistState = {
   // my playlists in the order they are shown; 我喜欢的音乐 is the first
   playlists: PlaylistInfo[];
   myPlaylistDict: { [playlistId: string]: MyPlaylist | undefined };
+  // the playlists of providers I subscribed to, in the order they were
+  // added; only what names them is kept, the songs are asked for each
+  // time. Missing in a state saved before subscriptions existed.
+  subscriptions?: PlaylistInfo[];
 };
 
 export type Theme = 'system' | 'white' | 'black';

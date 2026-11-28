@@ -56,14 +56,6 @@ export default function CreatePlaylistScreen({
       >
         <Text style={[styles.text, { color: palette.primaryColor }]}>完成</Text>
       </Pressable>
-      <Pressable
-        style={styles.link}
-        onPress={() => navigation.replace('ImportPlaylist')}
-      >
-        <Text style={[styles.text, { color: palette.secondaryColor }]}>
-          {'导入外部歌单 >'}
-        </Text>
-      </Pressable>
     </Screen>
   );
 }
@@ -85,5 +77,4 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   text: { fontSize: 14 },
-  link: { marginTop: 30, padding: 10 },
 });

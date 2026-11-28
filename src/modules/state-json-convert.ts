@@ -7,7 +7,8 @@ function deepCopy<T>(oldObject: T): T {
 }
 
 // The play queue and my playlists as one object, in the layout the other
-// Listen 1 clients export and import.
+// Listen 1 clients export and import. The subscriptions are an addition of
+// this app, under a key the others do not read.
 export default class StateJsonConvert {
   static getJson(state: {
     playerState: PlayerState;
@@ -28,6 +29,7 @@ export default class StateJsonConvert {
       },
       'current-playing': playerState.tracks,
       playerlists: myPlaylistState.playlists.map(i => i.id),
+      subscriptions: myPlaylistState.subscriptions ?? [],
     };
 
     myPlaylistState.playlists.forEach(i => {
@@ -90,6 +92,25 @@ export default class StateJsonConvert {
       }
       myPlaylistState.myPlaylistDict[playlistId] = playlist;
     });
+
+    // absent in data exported before subscriptions existed, and by the other
+    // clients
+    if (Array.isArray(jsonData.subscriptions)) {
+      myPlaylistState.subscriptions = jsonData.subscriptions
+        .filter(
+          (info: any) =>
+            info &&
+            typeof info.id === 'string' &&
+            typeof info.title === 'string'
+        )
+        .map((info: any) => ({
+          id: info.id,
+          title: info.title,
+          cover_img_url:
+            typeof info.cover_img_url === 'string' ? info.cover_img_url : '',
+          source_url: info.source_url,
+        }));
+    }
 
     return { playerState, myPlaylistState };
   }

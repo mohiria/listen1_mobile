@@ -374,3 +374,97 @@ test('a new install follows the system appearance until a theme is chosen', () =
   assert.equal(after().settingState.theme, 'system');
   assert.equal(after(actions.changeTheme('black')).settingState.theme, 'black');
 });
+
+const subscribed = (state) =>
+  (state.myPlaylistState.subscriptions ?? []).map((info) => info.id);
+const chart = { id: 'qqchart_26', title: '热歌榜', cover_img_url: 'http://c/1' };
+const list = { id: 'neplaylist_9', title: 'nine', cover_img_url: 'http://c/9' };
+
+test('a playlist is subscribed once, and only what names it is kept', () => {
+  const state = after(
+    actions.subscribePlaylist({ ...chart, tracks: [a] }),
+    actions.subscribePlaylist(list),
+    actions.subscribePlaylist(chart)
+  );
+
+  assert.deepEqual(subscribed(state), ['qqchart_26', 'neplaylist_9']);
+  assert.deepEqual(Object.keys(state.myPlaylistState.subscriptions[0]).sort(), [
+    'cover_img_url',
+    'id',
+    'source_url',
+    'title',
+  ]);
+  // a subscription is not a playlist of mine
+  assert.equal(state.myPlaylistState.playlists.length, 1);
+});
+
+test('a subscription can be taken back', () => {
+  const state = after(
+    actions.subscribePlaylist(chart),
+    actions.subscribePlaylist(list),
+    actions.unsubscribePlaylist('qqchart_26')
+  );
+
+  assert.deepEqual(subscribed(state), ['neplaylist_9']);
+});
+
+test('a state saved before subscriptions existed takes a subscription', () => {
+  const old = reducer(undefined, { type: '@@test/init' });
+  const { subscriptions, ...withoutSubscriptions } = old.myPlaylistState;
+  const state = reducer(
+    { ...old, myPlaylistState: withoutSubscriptions },
+    actions.subscribePlaylist(chart)
+  );
+
+  assert.deepEqual(subscribed(state), ['qqchart_26']);
+  assert.deepEqual(
+    subscribed(
+      reducer(
+        { ...old, myPlaylistState: withoutSubscriptions },
+        actions.unsubscribePlaylist('qqchart_26')
+      )
+    ),
+    []
+  );
+});
+
+test('exported data carries the subscriptions and restores them', () => {
+  const state = after(
+    actions.subscribePlaylist(chart),
+    actions.subscribePlaylist(list)
+  );
+  const exported = JSON.parse(JSON.stringify(StateJsonConvert.getJson(state)));
+  const restored = after(
+    actions.recoverData(StateJsonConvert.getState(exported))
+  );
+
+  assert.deepEqual(subscribed(restored), ['qqchart_26', 'neplaylist_9']);
+  assert.equal(restored.myPlaylistState.subscriptions[0].title, '热歌榜');
+});
+
+test('data exported without subscriptions restores with none', () => {
+  const exported = JSON.parse(
+    JSON.stringify(StateJsonConvert.getJson(after(actions.subscribePlaylist(chart))))
+  );
+
+  delete exported.subscriptions;
+  const restored = after(
+    actions.subscribePlaylist(list),
+    actions.recoverData(StateJsonConvert.getState(exported))
+  );
+
+  assert.deepEqual(subscribed(restored), []);
+});
+
+test('subscriptions in exported data that do not name a playlist are left out', () => {
+  const exported = JSON.parse(
+    JSON.stringify(StateJsonConvert.getJson(after(actions.subscribePlaylist(chart))))
+  );
+
+  exported.subscriptions.push(null, { id: 5, title: 'x' }, { id: 'kgchart_1' });
+  const restored = after(
+    actions.recoverData(StateJsonConvert.getState(exported))
+  );
+
+  assert.deepEqual(subscribed(restored), ['qqchart_26']);
+});

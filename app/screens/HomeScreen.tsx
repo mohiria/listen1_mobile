@@ -5,6 +5,7 @@ import Client, { type Chart, type PlaylistInfo } from '../../src/api/client';
 import Cover from '../components/Cover';
 import SearchBox from '../components/SearchBox';
 import { usePalette } from '../theme';
+import { useStore } from '../useStore';
 import Screen from './Screen';
 
 const TILE = 104;
@@ -15,6 +16,7 @@ const KINDS: { kind: Chart['kind']; title: string; color: string }[] = [
   { kind: 'new', title: '新歌榜', color: '#3c9c6a' },
 ];
 
+const NO_SUBSCRIPTIONS: PlaylistInfo[] = [];
 const charts = Client.getCharts();
 const providers = Client.getPlatformArray();
 
@@ -138,8 +140,31 @@ function Section({
   );
 }
 
-// The first screen of the app: the charts of every provider side by side,
-// group by group, and a playlist of each provider.
+function PlaylistTile({
+  info,
+  onOpen,
+}: {
+  info: PlaylistInfo;
+  onOpen: (info: PlaylistInfo) => void;
+}) {
+  const palette = usePalette();
+
+  return (
+    <Pressable style={styles.tile} onPress={() => onOpen(info)}>
+      <Cover url={info.cover_img_url} size={TILE} />
+      <Text
+        numberOfLines={1}
+        style={[styles.caption, { color: palette.secondaryColor }]}
+      >
+        {info.title}
+      </Text>
+    </Pressable>
+  );
+}
+
+// The first screen of the app: the playlists I subscribed to, the charts of
+// every provider side by side, group by group, and a playlist of each
+// provider.
 export default function HomeScreen({
   navigation,
 }: {
@@ -150,8 +175,10 @@ export default function HomeScreen({
     ): void;
   };
 }) {
-  const palette = usePalette();
   const recommended = useRecommended();
+  const subscriptions = useStore(
+    state => state.myPlaylistState.subscriptions ?? NO_SUBSCRIPTIONS
+  );
   const open = useCallback(
     (info: PlaylistInfo) => navigation.navigate('Playlist', { info }),
     [navigation]
@@ -161,6 +188,13 @@ export default function HomeScreen({
     <Screen>
       <SearchBox onPress={() => navigation.navigate('Search')} />
       <ScrollView contentContainerStyle={styles.content}>
+        {subscriptions.length > 0 ? (
+          <Section title="订阅的歌单">
+            {subscriptions.map(info => (
+              <PlaylistTile key={info.id} info={info} onOpen={open} />
+            ))}
+          </Section>
+        ) : null}
         {KINDS.map(({ kind, title, color }) => (
           <Section key={kind} title={title}>
             {charts
@@ -178,19 +212,7 @@ export default function HomeScreen({
         {recommended.length > 0 ? (
           <Section title="推荐歌单">
             {recommended.map(info => (
-              <Pressable
-                key={info.id}
-                style={styles.tile}
-                onPress={() => open(info)}
-              >
-                <Cover url={info.cover_img_url} size={TILE} />
-                <Text
-                  numberOfLines={1}
-                  style={[styles.caption, { color: palette.secondaryColor }]}
-                >
-                  {info.title}
-                </Text>
-              </Pressable>
+              <PlaylistTile key={info.id} info={info} onOpen={open} />
             ))}
           </Section>
         ) : null}

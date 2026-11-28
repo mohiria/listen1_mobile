@@ -27,6 +27,8 @@ export const TYPE = {
   ADD_TO_MY_FAVORITE: 'ADD_TO_MY_FAVORITE',
   REMOVE_FROM_MY_FAVORITE: 'REMOVE_FROM_MY_FAVORITE',
   RECOVER_DATA: 'RECOVER_DATA',
+  SUBSCRIBE_PLAYLIST: 'SUBSCRIBE_PLAYLIST',
+  UNSUBSCRIBE_PLAYLIST: 'UNSUBSCRIBE_PLAYLIST',
 };
 
 export const playTrack = (track: Track) => ({
@@ -146,6 +148,15 @@ export const addToMyFavorite = (payload: Track) => ({
 export const removeFromMyFavorite = (payload: Track) => ({
   type: TYPE.REMOVE_FROM_MY_FAVORITE,
   payload,
+});
+// Remembers a playlist of a provider unless it is remembered already.
+export const subscribePlaylist = (info: PlaylistInfo) => ({
+  type: TYPE.SUBSCRIBE_PLAYLIST,
+  info,
+});
+export const unsubscribePlaylist = (playlistId: string) => ({
+  type: TYPE.UNSUBSCRIBE_PLAYLIST,
+  playlistId,
 });
 // Replaces the play queue and my playlists with those of exported data, as
 // StateJsonConvert.getState gives them.

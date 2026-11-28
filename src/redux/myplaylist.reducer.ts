@@ -135,6 +135,7 @@ export const defaultmyPlaylistState: MyPlaylistState = {
   myPlaylistDict: {
     [myFavoritePlaylist.info.id]: myFavoritePlaylist,
   },
+  subscriptions: [],
 };
 
 export const myPlaylistReducer = (
@@ -206,6 +207,34 @@ export const myPlaylistReducer = (
       return handleAddToMyFavorite(state, action);
     case TYPE.REMOVE_FROM_MY_FAVORITE:
       return handleRemoveFromMyFavorite(state, action);
+    case TYPE.SUBSCRIBE_PLAYLIST: {
+      const subscriptions = state.subscriptions ?? [];
+      const info: PlaylistInfo = action.info;
+
+      if (subscriptions.some(i => i.id === info.id)) {
+        return state;
+      }
+
+      return {
+        ...state,
+        subscriptions: [
+          ...subscriptions,
+          {
+            id: info.id,
+            title: info.title,
+            cover_img_url: info.cover_img_url,
+            source_url: info.source_url,
+          },
+        ],
+      };
+    }
+    case TYPE.UNSUBSCRIBE_PLAYLIST:
+      return {
+        ...state,
+        subscriptions: (state.subscriptions ?? []).filter(
+          i => i.id !== action.playlistId
+        ),
+      };
     case TYPE.RECOVER_DATA:
       return { ...action.payload.myPlaylistState };
     default:

@@ -15,6 +15,8 @@ import {
   openModalLite,
   playTrackInPlaylist,
   playTracks,
+  subscribePlaylist,
+  unsubscribePlaylist,
 } from '../../src/redux/actions';
 import { store } from '../../src/redux/store';
 import Cover from '../components/Cover';
@@ -48,6 +50,9 @@ export default function PlaylistScreen({
   const nowPlaying = useStore(state => state.playerState.nowplayingTrack);
   const saved = useStore(state =>
     mine ? state.myPlaylistState.myPlaylistDict[given.id] : undefined
+  );
+  const subscribed = useStore(state =>
+    (state.myPlaylistState.subscriptions ?? []).some(i => i.id === given.id)
   );
   const [loaded, setLoaded] = useState<{
     info: PlaylistInfo;
@@ -104,6 +109,15 @@ export default function PlaylistScreen({
   );
 
   const color = palette.primaryColor;
+  const toggleSubscription = () => {
+    if (subscribed) {
+      store.dispatch(unsubscribePlaylist(given.id));
+      showToast('已取消订阅');
+    } else {
+      store.dispatch(subscribePlaylist(info));
+      showToast('已订阅');
+    }
+  };
   const header = (
     <View>
       <View style={styles.header}>
@@ -113,6 +127,12 @@ export default function PlaylistScreen({
       {loading ? <ActivityIndicator color="#777777" /> : null}
       {!loading && failed ? (
         <ListStatus message="加载失败" onRetry={load} />
+      ) : null}
+      {/* a subscribed playlist that no longer loads can still be let go */}
+      {!loading && failed && subscribed ? (
+        <Pressable style={styles.unsubscribe} onPress={toggleSubscription}>
+          <Text style={{ color: palette.secondaryColor }}>取消订阅</Text>
+        </Pressable>
       ) : null}
       {!loading && !failed && tracks.length > 0 ? (
         <View style={styles.buttons}>
@@ -136,16 +156,36 @@ export default function PlaylistScreen({
               <Text style={[styles.buttonText, { color }]}>编辑歌单</Text>
             </Pressable>
           ) : (
-            <Pressable
-              style={styles.button}
-              onPress={() => {
-                store.dispatch(createMyPlaylist({ info, tracks }));
-                showToast('收藏成功');
-              }}
-            >
-              <MaterialIcons name="add-box" size={26} color={color} />
-              <Text style={[styles.buttonText, { color }]}>收藏歌单</Text>
-            </Pressable>
+            <>
+              <Pressable
+                style={styles.button}
+                onPress={() => {
+                  store.dispatch(createMyPlaylist({ info, tracks }));
+                  showToast('收藏成功');
+                }}
+              >
+                <MaterialIcons name="add-box" size={26} color={color} />
+                <Text style={[styles.buttonText, { color }]}>收藏</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.subscribe]}
+                onPress={toggleSubscription}
+              >
+                <MaterialIcons
+                  name={subscribed ? 'bookmark' : 'bookmark-border'}
+                  size={26}
+                  color={subscribed ? palette.accentColor : color}
+                />
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: subscribed ? palette.accentColor : color },
+                  ]}
+                >
+                  {subscribed ? '已订阅' : '订阅'}
+                </Text>
+              </Pressable>
+            </>
           )}
         </View>
       ) : null}
@@ -187,5 +227,7 @@ const styles = StyleSheet.create({
   },
   button: { alignItems: 'center', flexDirection: 'row', height: 40 },
   playAll: { flex: 1 },
-  buttonText: { marginLeft: 10 },
+  subscribe: { marginLeft: 14 },
+  unsubscribe: { alignItems: 'center', paddingVertical: 10 },
+  buttonText: { marginLeft: 6 },
 });
