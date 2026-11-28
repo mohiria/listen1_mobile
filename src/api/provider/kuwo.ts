@@ -156,7 +156,8 @@ async function kw_get_chart(bangId: string): Promise<Playlist> {
 
   return {
     info: {
-      cover_img_url: data.pic || '',
+      // some charts name a folder instead of a picture
+      cover_img_url: /\.(jpe?g|png|webp)$/i.test(data.pic || '') ? data.pic : '',
       title: data.name,
       id: `kwchart_${bangId}`,
       source_url: 'http://www.kuwo.cn/rankList',
