@@ -60,6 +60,9 @@ export default function ImportPlaylistScreen({
       <Text style={[styles.notice, { color: palette.secondaryColor }]}>
         {notice}
       </Text>
+      <Text style={[styles.hint, { color: palette.thirdColor }]}>
+        打开歌单后，可以「收藏」一份到我的歌单，也可以「订阅」它，跟随音源更新。
+      </Text>
     </Screen>
   );
 }
@@ -82,4 +85,5 @@ const styles = StyleSheet.create({
   },
   text: { fontSize: 14 },
   notice: { fontSize: 14, marginTop: 20 },
+  hint: { fontSize: 12, marginTop: 10, textAlign: 'center' },
 });

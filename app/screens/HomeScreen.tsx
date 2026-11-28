@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import Client, { type Chart, type PlaylistInfo } from '../../src/api/client';
 import Cover from '../components/Cover';
@@ -20,26 +27,35 @@ const NO_SUBSCRIPTIONS: PlaylistInfo[] = [];
 const charts = Client.getCharts();
 const providers = Client.getPlatformArray();
 
-// The first song of each chart, by the id of the chart, as far as it has been
-// asked for since the app started. A chart changes once a day at most.
-const firstSongs: { [chartId: string]: string } = {};
+// The song that leads a chart: its name, and its picture as the cover of the
+// chart. Where the song has no picture the chart's own takes its place.
+type Lead = { song: string; cover: string };
 
-// The name of the song that leads the chart, '' until it is known.
-function useFirstSong(chart: Chart): string {
-  const [song, setSong] = useState(firstSongs[chart.id] ?? '');
+// By the id of the chart, as far as it has been asked for since the app
+// started. A chart changes once a day at most.
+const leads: { [chartId: string]: Lead } = {};
+const NO_LEAD: Lead = { song: '', cover: '' };
+
+// What leads the chart; empty until it is known.
+function useLead(chart: Chart): Lead {
+  const [lead, setLead] = useState(leads[chart.id] ?? NO_LEAD);
 
   useEffect(() => {
     let mounted = true;
 
-    if (firstSongs[chart.id] === undefined) {
+    if (leads[chart.id] === undefined) {
       // Promise.resolve: getPlaylist can throw for an id it does not recognise
       Promise.resolve()
         .then(() => Client.getPlaylist(chart.id))
         .then(playlist => {
           if (playlist.tracks.length > 0) {
-            firstSongs[chart.id] = playlist.tracks[0].title;
+            leads[chart.id] = {
+              song: playlist.tracks[0].title,
+              cover:
+                playlist.tracks[0].img_url || playlist.info.cover_img_url || '',
+            };
             if (mounted) {
-              setSong(firstSongs[chart.id]);
+              setLead(leads[chart.id]);
             }
           }
         })
@@ -52,7 +68,7 @@ function useFirstSong(chart: Chart): string {
     };
   }, [chart.id]);
 
-  return song;
+  return lead;
 }
 
 function ChartTile({
@@ -65,18 +81,31 @@ function ChartTile({
   onOpen: (info: PlaylistInfo) => void;
 }) {
   const palette = usePalette();
-  const song = useFirstSong(chart);
+  const { song, cover } = useLead(chart);
+  const names = (
+    <>
+      <Text numberOfLines={2} style={styles.blockTitle}>
+        {chart.title}
+      </Text>
+      <Text style={styles.blockProvider}>
+        {Client.getProviderName(chart.source)}
+      </Text>
+    </>
+  );
 
   return (
     <Pressable style={styles.tile} onPress={() => onOpen(chart)}>
-      <View style={[styles.block, { backgroundColor: color }]}>
-        <Text numberOfLines={2} style={styles.blockTitle}>
-          {chart.title}
-        </Text>
-        <Text style={styles.blockProvider}>
-          {Client.getProviderName(chart.source)}
-        </Text>
-      </View>
+      {/^https?:/.test(cover) ? (
+        <ImageBackground
+          source={{ uri: cover }}
+          style={[styles.picture, { backgroundColor: color }]}
+        >
+          {/* darkens the picture so that the names stay readable */}
+          <View style={[styles.block, styles.shade]}>{names}</View>
+        </ImageBackground>
+      ) : (
+        <View style={[styles.block, { backgroundColor: color }]}>{names}</View>
+      )}
       <Text
         numberOfLines={1}
         style={[styles.caption, { color: palette.secondaryColor }]}
@@ -240,6 +269,8 @@ const styles = StyleSheet.create({
     padding: 6,
     width: TILE,
   },
+  picture: { borderRadius: 8, height: TILE, overflow: 'hidden', width: TILE },
+  shade: { backgroundColor: '#00000066', borderRadius: 0 },
   blockTitle: {
     color: '#ffffff',
     fontSize: 16,
