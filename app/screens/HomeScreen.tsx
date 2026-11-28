@@ -163,8 +163,7 @@ export default function HomeScreen({
     ): void;
   };
 }) {
-  const palette = usePalette();
-  const { leads, recommended, loading, failed, error } = useSyncExternalStore(
+  const { leads, recommended, loading, failed } = useSyncExternalStore(
     home.subscribe,
     home.getState
   );
@@ -226,20 +225,10 @@ export default function HomeScreen({
           </Section>
         ) : null}
         {!loading && failed.length > 0 ? (
-          <View>
-            <ListStatus
-              message={`有 ${failed.length} 项没有加载出来`}
-              onRetry={loadMissing}
-            />
-            {/* TEMP(2.1): the reason, to find out why the home screen stayed
-                empty on the device. Goes once that is settled. */}
-            <Text
-              selectable
-              style={[styles.reason, { color: palette.thirdColor }]}
-            >
-              {`${failed.join('、')}\n${error}`}
-            </Text>
-          </View>
+          <ListStatus
+            message={`有 ${failed.length} 项没有加载出来`}
+            onRetry={loadMissing}
+          />
         ) : null}
       </ScrollView>
     </Screen>
@@ -278,5 +267,4 @@ const styles = StyleSheet.create({
   },
   blockProvider: { color: '#ffffffcc', fontSize: 12, marginTop: 4 },
   caption: { fontSize: 12, marginTop: 5 },
-  reason: { fontSize: 11, paddingHorizontal: 20, textAlign: 'center' },
 });
