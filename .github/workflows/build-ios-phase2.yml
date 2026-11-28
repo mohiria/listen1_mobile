@@ -4,15 +4,18 @@ on:
   push:
     branches:
       - phase-2
+    # a version tag publishes a release of its own, which later pushes leave alone
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 # A newer push replaces the build of an older one, so that the release always
-# ends up holding the newest commit.
+# ends up holding the newest commit. A version tag builds beside the branch.
 concurrency:
-  group: build-ios-phase2
+  group: build-ios-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -125,7 +128,18 @@ jobs:
           test -s build/Listen1.ipa
           unzip -l build/Listen1.ipa | head -40
 
+      - name: Publish IPA to the release of the version tag
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Listen 1 ${{ github.ref_name }}
+          prerelease: false
+          make_latest: true
+          files: build/Listen1.ipa
+
       - name: Publish IPA to GitHub Release
+        if: github.ref_type != 'tag'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ios-ipa-phase2
