@@ -468,3 +468,60 @@ test('subscriptions in exported data that do not name a playlist are left out', 
 
   assert.deepEqual(subscribed(restored), ['qqchart_26']);
 });
+
+test('in repeat one a song that fails to load stops the player', () => {
+  const state = after(
+    actions.playTrackInPlaylist({ track: a, playlist }),
+    actions.changePlayMode(),
+    actions.changePlayMode(),
+    actions.loadFail()
+  );
+
+  assert.equal(state.playerState.playMode, 2);
+  assert.equal(nowPlaying(state), a.id);
+  assert.equal(state.playerState.isPlaying, false);
+});
+
+test('exported data names the current song and restores it without playing', () => {
+  const state = after(
+    actions.playTrackInPlaylist({ track: a, playlist }),
+    actions.nextTrack()
+  );
+  const exported = JSON.parse(JSON.stringify(StateJsonConvert.getJson(state)));
+
+  assert.equal(exported['player-settings'].nowplaying_track_id, b.id);
+
+  const restored = reducer(
+    after(),
+    actions.recoverData(StateJsonConvert.getState(exported))
+  );
+
+  assert.equal(nowPlaying(restored), b.id);
+  assert.equal(restored.playerState.isPlaying, false);
+});
+
+test('data that names no song of the play queue restores without a current song', () => {
+  const exported = JSON.parse(
+    JSON.stringify(
+      StateJsonConvert.getJson(
+        after(actions.playTrackInPlaylist({ track: a, playlist }))
+      )
+    )
+  );
+
+  exported['player-settings'].nowplaying_track_id = '-1';
+  assert.equal(
+    nowPlaying(
+      reducer(after(), actions.recoverData(StateJsonConvert.getState(exported)))
+    ),
+    null
+  );
+
+  delete exported['player-settings'];
+  assert.equal(
+    nowPlaying(
+      reducer(after(), actions.recoverData(StateJsonConvert.getState(exported)))
+    ),
+    null
+  );
+});

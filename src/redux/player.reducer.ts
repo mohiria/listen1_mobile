@@ -298,9 +298,12 @@ const playerReducerBase = (
     case TYPE.NEXT_TRACK:
       return next(state);
     case TYPE.LOAD_FAIL:
-      // The old code meant to pause here in repeat one, but read the play mode
-      // from where there is none, so it never did. Left as it behaved.
-      if (Object.keys(state.skipIds).length >= state.tracks.length) {
+      // in repeat one the next song is this one again, so there is nothing
+      // to move on to
+      if (
+        state.playMode === ENUM_PLAYMODE.REPEAT_ONE ||
+        Object.keys(state.skipIds).length >= state.tracks.length
+      ) {
         return pause(state);
       }
 

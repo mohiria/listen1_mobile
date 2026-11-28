@@ -16,9 +16,10 @@ export default class StateJsonConvert {
   }): object {
     const { playerState, myPlaylistState } = state;
 
-    // The old code read the current song from a field that is not there, so
-    // what it exported was always '-1'. Left as it behaved.
-    const nowPlayingTrackId = '-1';
+    const nowPlayingTrackId =
+      playerState.nowplayingTrack === null
+        ? '-1'
+        : playerState.nowplayingTrack.id;
     const result: { [key: string]: unknown } = {
       // TODO: support language setting
       language: 'zh_CN',
@@ -65,6 +66,15 @@ export default class StateJsonConvert {
     playerState.tracks = Array.isArray(jsonData['current-playing'])
       ? jsonData['current-playing']
       : [];
+
+    // the current song, when the data names one of the play queue; data
+    // exported before 2.1 always says '-1'
+    const nowPlayingTrackId =
+      jsonData['player-settings'] &&
+      jsonData['player-settings'].nowplaying_track_id;
+
+    playerState.nowplayingTrack =
+      playerState.tracks.find(track => track.id === nowPlayingTrackId) ?? null;
 
     jsonData.playerlists.forEach((playlistId: string) => {
       const playlist = jsonData[playlistId];
