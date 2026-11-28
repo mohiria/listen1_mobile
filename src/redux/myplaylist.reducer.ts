@@ -218,13 +218,13 @@ export const myPlaylistReducer = (
       return {
         ...state,
         subscriptions: [
-          ...subscriptions,
           {
             id: info.id,
             title: info.title,
             cover_img_url: info.cover_img_url,
             source_url: info.source_url,
           },
+          ...subscriptions,
         ],
       };
     }
@@ -235,6 +235,8 @@ export const myPlaylistReducer = (
           i => i.id !== action.playlistId
         ),
       };
+    case TYPE.SAVE_SUBSCRIPTIONS:
+      return { ...state, subscriptions: [...action.subscriptions] };
     case TYPE.RECOVER_DATA:
       return { ...action.payload.myPlaylistState };
     default:

@@ -25,11 +25,13 @@ import ReorderScreen from './screens/ReorderScreen';
 import RestoreScreen from './screens/RestoreScreen';
 import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import SubscriptionsScreen from './screens/SubscriptionsScreen';
 import { navigationTheme, usePalette } from './theme';
 
 export type HomeStackParamList = {
   Home: undefined;
   Search: undefined;
+  Subscriptions: undefined;
   Playlist: { info: PlaylistInfo };
 };
 export type PlaylistsStackParamList = {
@@ -42,8 +44,9 @@ export type MineStackParamList = {
   Playlist: { info: PlaylistInfo };
   CreatePlaylist: undefined;
   ImportPlaylist: undefined;
-  // the playlist of mine whose songs are edited; without it, my playlists
-  Reorder: { playlistId?: string };
+  // the playlist of mine whose songs are edited, or the subscriptions;
+  // without either, my playlists
+  Reorder: { playlistId?: string; subscriptions?: boolean };
   Settings: undefined;
   Backup: undefined;
   Restore: undefined;
@@ -81,6 +84,11 @@ function HomeTab() {
         name="Search"
         component={SearchScreen}
         options={{ title: '搜索' }}
+      />
+      <HomeStack.Screen
+        name="Subscriptions"
+        component={SubscriptionsScreen}
+        options={{ title: '订阅的歌单' }}
       />
       <HomeStack.Screen
         name="Playlist"
@@ -157,7 +165,9 @@ function MineTab() {
       <MineStack.Screen
         name="Reorder"
         component={ReorderScreen}
-        options={{ title: '编辑歌单' }}
+        options={({ route }) => ({
+          title: route.params.subscriptions ? '编辑订阅' : '编辑歌单',
+        })}
       />
       <MineStack.Screen
         name="Settings"

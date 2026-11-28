@@ -387,8 +387,9 @@ test('a playlist is subscribed once, and only what names it is kept', () => {
     actions.subscribePlaylist(chart)
   );
 
-  assert.deepEqual(subscribed(state), ['qqchart_26', 'neplaylist_9']);
-  assert.deepEqual(Object.keys(state.myPlaylistState.subscriptions[0]).sort(), [
+  // the newest first
+  assert.deepEqual(subscribed(state), ['neplaylist_9', 'qqchart_26']);
+  assert.deepEqual(Object.keys(state.myPlaylistState.subscriptions[1]).sort(), [
     'cover_img_url',
     'id',
     'source_url',
@@ -406,6 +407,25 @@ test('a subscription can be taken back', () => {
   );
 
   assert.deepEqual(subscribed(state), ['neplaylist_9']);
+});
+
+test('subscriptions can be put in another order and taken out', () => {
+  const start = after(
+    actions.subscribePlaylist(chart),
+    actions.subscribePlaylist(list),
+    actions.subscribePlaylist({ id: 'kgchart_8888', title: 'TOP500' })
+  );
+  const [top, nine, hot] = start.myPlaylistState.subscriptions;
+  const state = reducer(start, actions.saveSubscriptions([hot, top]));
+
+  assert.deepEqual(subscribed(state), ['qqchart_26', 'kgchart_8888']);
+  assert.equal(nine.id, 'neplaylist_9');
+  // a new one still goes ahead of the others
+  assert.deepEqual(subscribed(reducer(state, actions.subscribePlaylist(list))), [
+    'neplaylist_9',
+    'qqchart_26',
+    'kgchart_8888',
+  ]);
 });
 
 test('a state saved before subscriptions existed takes a subscription', () => {
@@ -438,8 +458,8 @@ test('exported data carries the subscriptions and restores them', () => {
     actions.recoverData(StateJsonConvert.getState(exported))
   );
 
-  assert.deepEqual(subscribed(restored), ['qqchart_26', 'neplaylist_9']);
-  assert.equal(restored.myPlaylistState.subscriptions[0].title, '热歌榜');
+  assert.deepEqual(subscribed(restored), ['neplaylist_9', 'qqchart_26']);
+  assert.equal(restored.myPlaylistState.subscriptions[1].title, '热歌榜');
 });
 
 test('data exported without subscriptions restores with none', () => {

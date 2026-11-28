@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ImageBackground,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,8 +11,8 @@ import {
 import Client, { type Chart, type PlaylistInfo } from '../../src/api/client';
 import Cover from '../components/Cover';
 import SearchBox from '../components/SearchBox';
+import { useSubscriptions } from '../components/SubscriptionList';
 import { usePalette } from '../theme';
-import { useStore } from '../useStore';
 import Screen from './Screen';
 
 const TILE = 104;
@@ -23,7 +23,8 @@ const KINDS: { kind: Chart['kind']; title: string; color: string }[] = [
   { kind: 'new', title: '新歌榜', color: '#3c9c6a' },
 ];
 
-const NO_SUBSCRIPTIONS: PlaylistInfo[] = [];
+// how many subscriptions the home screen shows; the rest are behind 全部
+const MOST_SUBSCRIPTIONS = 10;
 const charts = Client.getCharts();
 const providers = Client.getPlatformArray();
 
@@ -95,17 +96,21 @@ function ChartTile({
 
   return (
     <Pressable style={styles.tile} onPress={() => onOpen(chart)}>
-      {/^https?:/.test(cover) ? (
-        <ImageBackground
-          source={{ uri: cover }}
-          style={[styles.picture, { backgroundColor: color }]}
+      <View style={[styles.picture, { backgroundColor: color }]}>
+        {/^https?:/.test(cover) ? (
+          <Image
+            source={{ uri: cover }}
+            resizeMode="cover"
+            style={styles.image}
+          />
+        ) : null}
+        {/* over a picture, darkens it so that the names stay readable */}
+        <View
+          style={[styles.block, cover === '' ? null : styles.shade]}
         >
-          {/* darkens the picture so that the names stay readable */}
-          <View style={[styles.block, styles.shade]}>{names}</View>
-        </ImageBackground>
-      ) : (
-        <View style={[styles.block, { backgroundColor: color }]}>{names}</View>
-      )}
+          {names}
+        </View>
+      </View>
       <Text
         numberOfLines={1}
         style={[styles.caption, { color: palette.secondaryColor }]}
@@ -146,18 +151,30 @@ function useRecommended(): PlaylistInfo[] {
 
 function Section({
   title,
+  onMore,
   children,
 }: {
   title: string;
+  // opens all of what the section shows a part of
+  onMore?: () => void;
   children: React.ReactNode;
 }) {
   const palette = usePalette();
 
   return (
     <View>
-      <Text style={[styles.heading, { color: palette.primaryColor }]}>
-        {title}
-      </Text>
+      <View style={styles.headingRow}>
+        <Text style={[styles.heading, { color: palette.primaryColor }]}>
+          {title}
+        </Text>
+        {onMore ? (
+          <Pressable hitSlop={8} onPress={onMore}>
+            <Text style={[styles.more, { color: palette.secondaryColor }]}>
+              {'全部 >'}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -199,15 +216,13 @@ export default function HomeScreen({
 }: {
   navigation: {
     navigate(
-      name: 'Playlist' | 'Search',
+      name: 'Playlist' | 'Search' | 'Subscriptions',
       params?: { info: PlaylistInfo }
     ): void;
   };
 }) {
   const recommended = useRecommended();
-  const subscriptions = useStore(
-    state => state.myPlaylistState.subscriptions ?? NO_SUBSCRIPTIONS
-  );
+  const subscriptions = useSubscriptions();
   const open = useCallback(
     (info: PlaylistInfo) => navigation.navigate('Playlist', { info }),
     [navigation]
@@ -218,8 +233,15 @@ export default function HomeScreen({
       <SearchBox onPress={() => navigation.navigate('Search')} />
       <ScrollView contentContainerStyle={styles.content}>
         {subscriptions.length > 0 ? (
-          <Section title="订阅的歌单">
-            {subscriptions.map(info => (
+          <Section
+            title="订阅的歌单"
+            onMore={
+              subscriptions.length > MOST_SUBSCRIPTIONS
+                ? () => navigation.navigate('Subscriptions')
+                : undefined
+            }
+          >
+            {subscriptions.slice(0, MOST_SUBSCRIPTIONS).map(info => (
               <PlaylistTile key={info.id} info={info} onOpen={open} />
             ))}
           </Section>
@@ -252,13 +274,16 @@ export default function HomeScreen({
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 16 },
-  heading: {
-    fontSize: 16,
-    fontWeight: '600',
+  headingRow: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 8,
     marginHorizontal: 12,
     marginTop: 14,
   },
+  heading: { fontSize: 16, fontWeight: '600' },
+  more: { fontSize: 13 },
   strip: { gap: 10, paddingHorizontal: 12 },
   tile: { width: TILE },
   block: {
@@ -270,7 +295,8 @@ const styles = StyleSheet.create({
     width: TILE,
   },
   picture: { borderRadius: 8, height: TILE, overflow: 'hidden', width: TILE },
-  shade: { backgroundColor: '#00000066', borderRadius: 0 },
+  image: { height: TILE, left: 0, position: 'absolute', top: 0, width: TILE },
+  shade: { backgroundColor: 'rgba(0, 0, 0, 0.4)' },
   blockTitle: {
     color: '#ffffff',
     fontSize: 16,

@@ -29,6 +29,7 @@ export const TYPE = {
   RECOVER_DATA: 'RECOVER_DATA',
   SUBSCRIBE_PLAYLIST: 'SUBSCRIBE_PLAYLIST',
   UNSUBSCRIBE_PLAYLIST: 'UNSUBSCRIBE_PLAYLIST',
+  SAVE_SUBSCRIPTIONS: 'SAVE_SUBSCRIPTIONS',
 };
 
 export const playTrack = (track: Track) => ({
@@ -149,7 +150,8 @@ export const removeFromMyFavorite = (payload: Track) => ({
   type: TYPE.REMOVE_FROM_MY_FAVORITE,
   payload,
 });
-// Remembers a playlist of a provider unless it is remembered already.
+// Remembers a playlist of a provider, ahead of the others, unless it is
+// remembered already.
 export const subscribePlaylist = (info: PlaylistInfo) => ({
   type: TYPE.SUBSCRIBE_PLAYLIST,
   info,
@@ -157,6 +159,11 @@ export const subscribePlaylist = (info: PlaylistInfo) => ({
 export const unsubscribePlaylist = (playlistId: string) => ({
   type: TYPE.UNSUBSCRIBE_PLAYLIST,
   playlistId,
+});
+// The subscriptions to keep, in their new order.
+export const saveSubscriptions = (subscriptions: PlaylistInfo[]) => ({
+  type: TYPE.SAVE_SUBSCRIPTIONS,
+  subscriptions,
 });
 // Replaces the play queue and my playlists with those of exported data, as
 // StateJsonConvert.getState gives them.
